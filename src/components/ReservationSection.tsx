@@ -1,0 +1,425 @@
+import React, { useState } from 'react';
+import { Calendar, Clock, Users, MapPin, Send, AlertCircle, Phone, Info } from 'lucide-react';
+import { Reservation } from '../types';
+import { createReservation } from '../services/reservationService';
+import { ReservationTicket } from './ReservationTicket';
+
+export const ReservationSection: React.FC = () => {
+  // Today formatted as YYYY-MM-DD for min date
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const [date, setDate] = useState(todayStr);
+  const [shift, setShift] = useState<'almuerzo' | 'cena'>('almuerzo');
+  const [timeSlot, setTimeSlot] = useState('14:00');
+  const [diners, setDiners] = useState(2);
+  const [locationPreference, setLocationPreference] = useState<'salon' | 'terraza' | 'indiferente'>('salon');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [specialRequests, setSpecialRequests] = useState('');
+  const [allergies, setAllergies] = useState('');
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmedReservation, setConfirmedReservation] = useState<Reservation | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Time slot options depending on shift
+  const lunchSlots = ['13:30', '14:00', '14:30', '15:00', '15:30'];
+  const dinnerSlots = ['20:30', '21:00', '21:30', '22:00', '22:30'];
+
+  const availableSlots = shift === 'almuerzo' ? lunchSlots : dinnerSlots;
+
+  const handleShiftChange = (newShift: 'almuerzo' | 'cena') => {
+    setShift(newShift);
+    setTimeSlot(newShift === 'almuerzo' ? '14:00' : '21:00');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+
+    // Validation
+    if (!customerName.trim()) {
+      setErrorMessage('Por favor, indica tu nombre completo.');
+      return;
+    }
+    if (!customerPhone.trim() || customerPhone.replace(/\s+/g, '').length < 9) {
+      setErrorMessage('Por favor, introduce un número de teléfono válido para confirmar la mesa.');
+      return;
+    }
+    if (!date) {
+      setErrorMessage('Por favor, selecciona una fecha válida.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const result = await createReservation({
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        customerEmail: customerEmail.trim() || `${customerName.toLowerCase().replace(/\s+/g, '')}@reserva.mcp`,
+        date,
+        timeSlot,
+        shift,
+        diners,
+        locationPreference,
+        specialRequests: specialRequests.trim(),
+        allergies: allergies.trim(),
+      });
+
+      setConfirmedReservation(result);
+    } catch (err) {
+      console.error('Error al tramitar la reserva:', err);
+      setErrorMessage('Ocurrió un error al registrar la reserva. Por favor, inténtalo de nuevo o llámanos al 643 56 72 50.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReset = () => {
+    setConfirmedReservation(null);
+    setCustomerName('');
+    setCustomerPhone('');
+    setCustomerEmail('');
+    setSpecialRequests('');
+    setAllergies('');
+  };
+
+  return (
+    <section id="reservas" className="py-20 px-4 sm:px-8 border-b border-stone-200 bg-stone-100/60">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* Section Header */}
+        <div className="max-w-2xl mb-12">
+          <span className="font-mono text-xs uppercase tracking-widest text-aji-700 block mb-2">
+            [ 03 · Libro de Reservas ]
+          </span>
+          <h2 className="font-serif text-3xl sm:text-5xl font-bold text-ink">
+            Asegura tu Mesa en Mi Casa Perú
+          </h2>
+          <p className="text-stone-600 text-sm sm:text-base mt-3 font-sans">
+            Gestionamos cada servicio con mimo artesanal y aforo medido. 
+            Recibirás tu ticket de confirmación instantáneo con código único de reserva.
+          </p>
+        </div>
+
+        {/* If reservation is confirmed, show Ticket, else show clean Editorial Form */}
+        {confirmedReservation ? (
+          <ReservationTicket reservation={confirmedReservation} onReset={handleReset} />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* Form Column (8 cols) */}
+            <div className="lg:col-span-8 bg-stone-50 border border-stone-300 p-6 sm:p-10 shadow-editorial">
+              <form onSubmit={handleSubmit} className="space-y-8">
+                
+                {/* Error Banner */}
+                {errorMessage && (
+                  <div className="bg-red-50 border-l-4 border-red-600 p-4 text-xs font-mono text-red-800 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+
+                {/* 1. Date and Shift Selector */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-stone-200 pb-2">
+                    <span className="font-mono text-xs text-stone-400 font-bold">PASO 01</span>
+                    <h3 className="font-serif text-xl font-bold text-ink">Fecha y Turno</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-mono text-xs uppercase text-stone-600 mb-1.5">
+                        Día de la visita
+                      </label>
+                      <input
+                        type="date"
+                        min={todayStr}
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        required
+                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-xs uppercase text-stone-600 mb-1.5">
+                        Turno de Servicio
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleShiftChange('almuerzo')}
+                          className={`py-2.5 font-mono text-xs uppercase tracking-wider border transition-all ${
+                            shift === 'almuerzo'
+                              ? 'bg-stone-900 text-white border-stone-900'
+                              : 'bg-white text-stone-700 border-stone-300 hover:border-stone-500'
+                          }`}
+                        >
+                          Almuerzo (13:30h)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleShiftChange('cena')}
+                          className={`py-2.5 font-mono text-xs uppercase tracking-wider border transition-all ${
+                            shift === 'cena'
+                              ? 'bg-stone-900 text-white border-stone-900'
+                              : 'bg-white text-stone-700 border-stone-300 hover:border-stone-500'
+                          }`}
+                        >
+                          Cena (20:30h)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Time slot chips */}
+                  <div>
+                    <label className="block font-mono text-xs uppercase text-stone-600 mb-2">
+                      Hora exacta deseada
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {availableSlots.map((slot) => (
+                        <button
+                          key={slot}
+                          type="button"
+                          onClick={() => setTimeSlot(slot)}
+                          className={`px-4 py-2 font-mono text-xs transition-all border ${
+                            timeSlot === slot
+                              ? 'bg-aji-600 text-white border-aji-600 font-bold'
+                              : 'bg-white text-stone-800 border-stone-300 hover:border-stone-600'
+                          }`}
+                        >
+                          {slot} h
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Diners and Space preference */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-stone-200 pb-2">
+                    <span className="font-mono text-xs text-stone-400 font-bold">PASO 02</span>
+                    <h3 className="font-serif text-xl font-bold text-ink">Comensales y Espacio</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {/* Diners counter */}
+                    <div>
+                      <label className="block font-mono text-xs uppercase text-stone-600 mb-2">
+                        Número de personas
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => setDiners(num)}
+                            className={`w-9 h-9 font-mono text-xs flex items-center justify-center border transition-all ${
+                              diners === num
+                                ? 'bg-stone-900 text-white border-stone-900 font-bold'
+                                : 'bg-white text-stone-700 border-stone-300 hover:border-stone-500'
+                            }`}
+                          >
+                            {num}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="font-mono text-[10px] text-stone-400 mt-1.5">
+                        Para grupos de 9 o más comensales, por favor consúltanos por teléfono.
+                      </p>
+                    </div>
+
+                    {/* Zone preference */}
+                    <div>
+                      <label className="block font-mono text-xs uppercase text-stone-600 mb-2">
+                        Preferencia de ubicación
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { key: 'salon', label: 'Salón' },
+                          { key: 'terraza', label: 'Terraza' },
+                          { key: 'indiferente', label: 'Indiferente' },
+                        ].map((zone) => (
+                          <button
+                            key={zone.key}
+                            type="button"
+                            onClick={() => setLocationPreference(zone.key as any)}
+                            className={`py-2 font-mono text-xs border text-center transition-all ${
+                              locationPreference === zone.key
+                                ? 'bg-stone-900 text-white border-stone-900'
+                                : 'bg-white text-stone-700 border-stone-300 hover:border-stone-500'
+                            }`}
+                          >
+                            {zone.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Customer Contact Info */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-stone-200 pb-2">
+                    <span className="font-mono text-xs text-stone-400 font-bold">PASO 03</span>
+                    <h3 className="font-serif text-xl font-bold text-ink">Datos de Contacto</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-mono text-xs uppercase text-stone-600 mb-1">
+                        Nombre completo *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej. Rodrigo Álvarez"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        required
+                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900 placeholder:text-stone-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-xs uppercase text-stone-600 mb-1">
+                        Teléfono móvil *
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="Ej. 643 56 72 50"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        required
+                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900 placeholder:text-stone-400"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block font-mono text-xs uppercase text-stone-600 mb-1">
+                        Correo electrónico (opcional para recibir el comprobante)
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="tu-correo@ejemplo.com"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900 placeholder:text-stone-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-xs uppercase text-stone-600 mb-1">
+                        Alergias o intolerancias
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej. Celíaco, alérgico al marisco..."
+                        value={allergies}
+                        onChange={(e) => setAllergies(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900 placeholder:text-stone-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-xs uppercase text-stone-600 mb-1">
+                        Peticiones o notas para cocina
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej. Trona de bebé, cumpleaños..."
+                        value={specialRequests}
+                        onChange={(e) => setSpecialRequests(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900 placeholder:text-stone-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit button */}
+                <div className="pt-4 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="font-mono text-xs text-stone-500 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-stone-400 shrink-0" />
+                    <span>Registro instantáneo en Firestore (reservations)</span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full sm:w-auto px-8 py-3.5 bg-aji-600 hover:bg-aji-700 text-white font-mono text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-70 active:scale-95"
+                  >
+                    {isSubmitting ? (
+                      <span>Registrando reserva...</span>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>Confirmar Reserva de Mesa</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+              </form>
+            </div>
+
+            {/* Sidebar Column (4 cols): Hours, Phone, Policy */}
+            <div className="lg:col-span-4 space-y-6">
+              
+              {/* Direct Telephone Contact Card */}
+              <div className="bg-stone-900 text-stone-200 p-6 border border-stone-800 space-y-4">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-aji-400 block">
+                  Atención Telefónica Directa
+                </span>
+                <h4 className="font-serif text-2xl font-bold text-white">
+                  ¿Prefieres reservar por llamada o dudas?
+                </h4>
+                <p className="text-stone-400 text-xs font-sans leading-relaxed">
+                  Estamos disponibles en horario de servicio para atender reservas especiales, eventos privados o mesas de grupos numerosos.
+                </p>
+                <div className="pt-2">
+                  <a
+                    href="tel:643567250"
+                    className="w-full py-3 bg-white hover:bg-stone-100 text-stone-900 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Phone className="w-4 h-4 text-aji-600" />
+                    <span>Llamar al 643 56 72 50</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Service Shifts & Address info */}
+              <div className="bg-stone-50 border border-stone-300 p-6 space-y-4 font-mono text-xs">
+                <span className="text-stone-400 uppercase text-[10px] tracking-wider block">
+                  Turnos Diarios de Cocina
+                </span>
+                
+                <div className="space-y-3 border-y border-stone-200 py-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-stone-800">Almuerzos</span>
+                    <span className="text-stone-600">13:30h — 16:00h</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-stone-800">Cenas</span>
+                    <span className="text-stone-600">20:30h — 23:30h</span>
+                  </div>
+                </div>
+
+                <div className="text-stone-600 space-y-1">
+                  <p className="font-bold text-stone-900">Ubicación</p>
+                  <p>Calle Isla Cristina 6, 21006 Huelva</p>
+                  <p className="text-[11px] text-stone-500">A escasos minutos del centro histórico y con fácil aparcamiento en las inmediaciones.</p>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+      </div>
+    </section>
+  );
+};
