@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, CheckCircle2, XCircle, Flame, Sparkles, RefreshCw, AlertTriangle, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Plus, Edit2, Trash2, CheckCircle2, XCircle, Flame, Sparkles, RefreshCw, AlertTriangle, Image as ImageIcon, Upload, Link, Grid3X3, X } from 'lucide-react';
 import { MenuItem, DishCategory } from '../types';
 import { fetchMenuItems, addMenuItem, updateMenuItem, deleteMenuItem, seedInitialMenu } from '../services/menuService';
 
@@ -17,6 +17,8 @@ const PRESET_IMAGES = [
   { label: 'Postre Suspiro', url: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=800&q=80' },
   { label: 'Pisco Sour', url: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80' },
 ];
+
+type ImageMode = 'upload' | 'url' | 'presets';
 
 export const AdminMenu: React.FC = () => {
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -39,6 +41,100 @@ export const AdminMenu: React.FC = () => {
   const [allergens, setAllergens] = useState<string[]>([]);
   const [isChefChoice, setIsChefChoice] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
+
+  // Image upload state
+  const [imageMode, setImageMode] = useState<ImageMode>('upload');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Process an image file: resize to max 800px, compress to JPEG, store as data URL
+  const processImageFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) {
+      showNotice('⚠️ El archivo seleccionado no es una imagen válida.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showNotice('⚠️ La imagen es demasiado grande (máx. 10 MB).');
+      return;
+    }
+
+    setUploadingImage(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // Resize to max 800px width/height
+        const MAX = 800;
+        let w = img.width;
+        let h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) {
+            h = Math.round((h * MAX) / w);
+            w = MAX;
+          } else {
+            w = Math.round((w * MAX) / h);
+            h = MAX;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          setImageUrl(dataUrl);
+          setImagePreview(dataUrl);
+        }
+        setUploadingImage(false);
+      };
+      img.onerror = () => {
+        showNotice('⚠️ No se pudo procesar la imagen.');
+        setUploadingImage(false);
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => {
+      showNotice('⚠️ Error al leer el archivo.');
+      setUploadingImage(false);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processImageFile(file);
+    // Reset input so re-selecting the same file works
+    if (e.target) e.target.value = '';
+  };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processImageFile(file);
+  }, [processImageFile]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const clearUploadedImage = () => {
+    setImagePreview(null);
+    setImageUrl(PRESET_IMAGES[0].url);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const loadItems = async () => {
     setLoading(true);
@@ -69,6 +165,9 @@ export const AdminMenu: React.FC = () => {
     setAllergens([]);
     setIsChefChoice(false);
     setIsAvailable(true);
+    setImageMode('upload');
+    setImagePreview(null);
+    setIsDragOver(false);
     setIsModalOpen(true);
   };
 
@@ -85,6 +184,15 @@ export const AdminMenu: React.FC = () => {
     setAllergens(item.allergens || []);
     setIsChefChoice(item.isChefChoice);
     setIsAvailable(item.isAvailable);
+    // Detect if editing item uses a data URL (uploaded image)
+    if (item.imageUrl.startsWith('data:')) {
+      setImageMode('upload');
+      setImagePreview(item.imageUrl);
+    } else {
+      setImageMode('url');
+      setImagePreview(null);
+    }
+    setIsDragOver(false);
     setIsModalOpen(true);
   };
 
@@ -505,29 +613,180 @@ export const AdminMenu: React.FC = () => {
                 />
               </div>
 
-              {/* Image URL & Presets */}
+              {/* Image Section with Upload / URL / Presets tabs */}
               <div>
-                <label className="block font-mono uppercase text-stone-600 mb-1">URL de la Fotografía</label>
-                <input
-                  type="url"
-                  required
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900 mb-1.5"
-                />
-                <div className="flex flex-wrap gap-1 items-center">
-                  <span className="font-mono text-[10px] text-stone-400 mr-1">Fotos sugeridas:</span>
-                  {PRESET_IMAGES.map((preset, idx) => (
+                <label className="block font-mono uppercase text-stone-600 mb-2">Fotografía del Plato *</label>
+                
+                {/* Mode Tabs */}
+                <div className="flex border border-stone-300 mb-3">
+                  {[
+                    { key: 'upload' as ImageMode, icon: Upload, label: 'Subir Foto' },
+                    { key: 'url' as ImageMode, icon: Link, label: 'URL' },
+                    { key: 'presets' as ImageMode, icon: Grid3X3, label: 'Galería' },
+                  ].map((tab) => (
                     <button
-                      key={idx}
+                      key={tab.key}
                       type="button"
-                      onClick={() => setImageUrl(preset.url)}
-                      className="px-2 py-0.5 bg-stone-200 hover:bg-stone-300 text-[10px] font-mono border border-stone-300"
+                      onClick={() => setImageMode(tab.key)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                        imageMode === tab.key
+                          ? 'bg-stone-900 text-white font-bold'
+                          : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                      }`}
                     >
-                      {preset.label}
+                      <tab.icon className="w-3.5 h-3.5" />
+                      {tab.label}
                     </button>
                   ))}
                 </div>
+
+                {/* Upload Mode */}
+                {imageMode === 'upload' && (
+                  <div className="space-y-3">
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      id="dish-image-upload"
+                    />
+
+                    {/* Drop Zone / Preview */}
+                    {imagePreview ? (
+                      <div className="relative group">
+                        <img
+                          src={imagePreview}
+                          alt="Vista previa"
+                          className="w-full h-48 object-cover border-2 border-stone-300"
+                        />
+                        <div className="absolute inset-0 bg-stone-900/0 group-hover:bg-stone-900/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="px-3 py-1.5 bg-white text-stone-900 font-mono text-[10px] uppercase tracking-wider border border-stone-300 hover:bg-stone-100 transition-colors"
+                          >
+                            Cambiar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={clearUploadedImage}
+                            className="px-3 py-1.5 bg-red-600 text-white font-mono text-[10px] uppercase tracking-wider hover:bg-red-700 transition-colors"
+                          >
+                            <X className="w-3 h-3 inline mr-1" />
+                            Quitar
+                          </button>
+                        </div>
+                        <div className="absolute top-2 right-2 bg-emerald-600 text-white px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider">
+                          ✓ Foto cargada
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`relative cursor-pointer border-2 border-dashed transition-all duration-200 h-48 flex flex-col items-center justify-center gap-3 ${
+                          isDragOver
+                            ? 'border-aji-500 bg-aji-50/50 scale-[1.01]'
+                            : 'border-stone-300 bg-stone-50 hover:border-stone-500 hover:bg-stone-100'
+                        }`}
+                      >
+                        {uploadingImage ? (
+                          <>
+                            <RefreshCw className="w-8 h-8 text-aji-600 animate-spin" />
+                            <span className="font-mono text-xs text-stone-500">Procesando imagen...</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className={`p-3 rounded-full transition-colors ${
+                              isDragOver ? 'bg-aji-100' : 'bg-stone-200'
+                            }`}>
+                              <Upload className={`w-6 h-6 ${
+                                isDragOver ? 'text-aji-600' : 'text-stone-500'
+                              }`} />
+                            </div>
+                            <div className="text-center">
+                              <p className="font-mono text-xs text-stone-700">
+                                <span className="font-bold text-aji-700 underline">Haz clic para elegir</span> o arrastra una foto
+                              </p>
+                              <p className="font-mono text-[10px] text-stone-400 mt-1">
+                                JPG, PNG, WebP · Máximo 10 MB
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* URL Mode */}
+                {imageMode === 'url' && (
+                  <div className="space-y-3">
+                    <input
+                      type="url"
+                      value={imageUrl.startsWith('data:') ? '' : imageUrl}
+                      onChange={(e) => {
+                        setImageUrl(e.target.value);
+                        setImagePreview(null);
+                      }}
+                      placeholder="https://ejemplo.com/foto-del-plato.jpg"
+                      className="w-full px-3 py-2 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900"
+                    />
+                    {imageUrl && !imageUrl.startsWith('data:') && (
+                      <div className="border border-stone-200 overflow-hidden">
+                        <img
+                          src={imageUrl}
+                          alt="Vista previa URL"
+                          className="w-full h-36 object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Presets Mode */}
+                {imageMode === 'presets' && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {PRESET_IMAGES.map((preset, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setImageUrl(preset.url);
+                          setImagePreview(null);
+                        }}
+                        className={`relative group overflow-hidden border-2 transition-all ${
+                          imageUrl === preset.url
+                            ? 'border-aji-600 ring-2 ring-aji-300'
+                            : 'border-stone-200 hover:border-stone-400'
+                        }`}
+                      >
+                        <img
+                          src={preset.url}
+                          alt={preset.label}
+                          className="w-full h-20 object-cover"
+                        />
+                        <div className="absolute inset-x-0 bottom-0 bg-stone-900/75 px-1 py-0.5">
+                          <span className="font-mono text-[8px] text-white leading-tight block truncate">
+                            {preset.label}
+                          </span>
+                        </div>
+                        {imageUrl === preset.url && (
+                          <div className="absolute top-1 right-1 w-4 h-4 bg-aji-600 flex items-center justify-center">
+                            <span className="text-white text-[8px]">✓</span>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Allergens selector */}
