@@ -3,8 +3,11 @@
  * Mi Casa Perú - Protección integral contra XSS, Inyecciones y Acceso No Autorizado
  */
 
+import { getSupabaseClient, isSupabaseOnline } from '../services/supabase';
+
 // Constantes de seguridad
 const SESSION_STORAGE_TOKEN_KEY = 'mcp_secure_admin_session';
+const LOCAL_CUSTOM_HASH_KEY = 'mcp_custom_admin_hash';
 const SESSION_DURATION_MS = 4 * 60 * 60 * 1000; // 4 horas de validez de sesión
 
 /**
@@ -228,22 +231,197 @@ export function clearAdminSession(): void {
 
 /**
  * Verifica la contraseña de administración mediante hash criptográfico SHA-256
+ * Prioridad:
+ * 1. Supabase (admin_config table) -> Aplica para todos los dispositivos y usuarios en tiempo real
+ * 2. Cache local (localStorage) -> Respaldo si no hay conexión temporal
+ * 3. Variable de entorno VITE_ADMIN_PASSWORD_HASH
+ * 4. Contraseñas maestras por defecto ('micasaperu2026' y 'MiCasaPeru.2026!SecOps')
  */
 export async function verifyAdminPassphrase(enteredPassphrase: string): Promise<boolean> {
   if (!enteredPassphrase || enteredPassphrase.trim() === '') return false;
 
   const enteredHash = await computeSha256(enteredPassphrase.trim());
 
-  // Prioridad 1: Variable de entorno en producción VITE_ADMIN_PASSWORD_HASH
+  // Prioridad 1: Contraseña centralizada en Supabase (sincronizada para todos)
+  const supabase = getSupabaseClient();
+  if (isSupabaseOnline() && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('admin_config')
+        .select('value')
+        .eq('key', 'admin_password_hash')
+        .maybeSingle();
+
+      if (!error && data?.value && typeof data.value === 'string') {
+        const remoteHash = data.value.trim().toLowerCase();
+        // Sincronizar cache local
+        localStorage.setItem(LOCAL_CUSTOM_HASH_KEY, remoteHash);
+        return enteredHash.toLowerCase() === remoteHash;
+      }
+    } catch {
+      // Fallo de red o tabla no existente: continuar con fallbacks
+    }
+  }
+
+  // Prioridad 2: Cache local en este navegador
+  const localHash = localStorage.getItem(LOCAL_CUSTOM_HASH_KEY);
+  if (localHash && localHash.trim().length === 64) {
+    return enteredHash.toLowerCase() === localHash.trim().toLowerCase();
+  }
+
+  // Prioridad 3: Variable de entorno en producción VITE_ADMIN_PASSWORD_HASH
   const envHash = import.meta.env.VITE_ADMIN_PASSWORD_HASH;
   if (envHash && typeof envHash === 'string' && envHash.trim().length === 64) {
     return enteredHash.toLowerCase() === envHash.trim().toLowerCase();
   }
 
-  // Prioridad 2: Clave por defecto segura (Sha256 de 'MiCasaPeru.2026!SecOps' o 'micasaperu2026')
+  // Prioridad 4: Claves por defecto seguras (Sha256 de 'MiCasaPeru.2026!SecOps' o 'micasaperu2026')
   const legacyHash = await computeSha256('micasaperu2026');
   return (
     enteredHash.toLowerCase() === DEFAULT_FALLBACK_HASH.toLowerCase() ||
     enteredHash.toLowerCase() === legacyHash.toLowerCase()
   );
 }
+
+/**
+ * Actualiza la contraseña de administración y la persiste en Supabase para todos los usuarios.
+ */
+export async function updateAdminPassword(newPassword: string): Promise<{
+  success: boolean;
+  message: string;
+  tableNeedsCreation?: boolean;
+}> {
+  const cleanPass = newPassword.trim();
+  if (!cleanPass || cleanPass.length < 6) {
+    return {
+      success: false,
+      message: 'La nueva contraseña debe tener al menos 6 caracteres.',
+    };
+  }
+
+  const hash = await computeSha256(cleanPass);
+
+  // 1. Guardar siempre en cache local inmediatamente
+  localStorage.setItem(LOCAL_CUSTOM_HASH_KEY, hash);
+
+  // 2. Guardar en Supabase para sincronizar con todos los dispositivos
+  const supabase = getSupabaseClient();
+  if (isSupabaseOnline() && supabase) {
+    try {
+      const { error } = await supabase
+        .from('admin_config')
+        .upsert(
+          {
+            key: 'admin_password_hash',
+            value: hash,
+            description: 'Hash SHA-256 de la contraseña maestra de administración',
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'key' }
+        );
+
+      if (error) {
+        // Código PGRST205 o 42P01 indica que la tabla no existe en PostgreSQL
+        if (error.code === '42P01' || error.code === 'PGRST205' || error.message?.includes('admin_config')) {
+          return {
+            success: true,
+            tableNeedsCreation: true,
+            message:
+              'Contraseña guardada en este navegador. Para que aplique a todos los demás dispositivos, debes crear la tabla "admin_config" en Supabase ejecutando el código SQL de abajo.',
+          };
+        }
+
+        return {
+          success: false,
+          message: `Error al guardar en Supabase: ${error.message}. Se ha guardado en este navegador temporalmente.`,
+        };
+      }
+
+      return {
+        success: true,
+        message: '¡Contraseña actualizada con éxito en la nube! A partir de ahora todos los administradores deberán usar esta nueva contraseña.',
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: `Fallo de red al conectar con Supabase: ${err?.message || err}. Guardada en local.`,
+      };
+    }
+  }
+
+  return {
+    success: true,
+    message: 'Contraseña actualizada localmente. (Configura Supabase para sincronizarla en tiempo real con todos los dispositivos).',
+  };
+}
+
+/**
+ * Restablece la contraseña al valor por defecto (micasaperu2026)
+ */
+export async function resetAdminPasswordToDefault(): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  localStorage.removeItem(LOCAL_CUSTOM_HASH_KEY);
+
+  const supabase = getSupabaseClient();
+  if (isSupabaseOnline() && supabase) {
+    try {
+      await supabase
+        .from('admin_config')
+        .delete()
+        .eq('key', 'admin_password_hash');
+    } catch {
+      // Ignorar si la tabla no existe o error
+    }
+  }
+
+  return {
+    success: true,
+    message: 'Contraseña restablecida con éxito. La contraseña vuelve a ser: micasaperu2026',
+  };
+}
+
+/**
+ * Comprueba el estado actual de la contraseña (si está personalizada y origen)
+ */
+export async function checkHasCustomPassword(): Promise<{
+  hasCustom: boolean;
+  source: 'supabase' | 'local' | 'default';
+  updatedAt?: string;
+}> {
+  const supabase = getSupabaseClient();
+  if (isSupabaseOnline() && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('admin_config')
+        .select('value, updated_at')
+        .eq('key', 'admin_password_hash')
+        .maybeSingle();
+
+      if (!error && data?.value) {
+        return {
+          hasCustom: true,
+          source: 'supabase',
+          updatedAt: data.updated_at,
+        };
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  const localHash = localStorage.getItem(LOCAL_CUSTOM_HASH_KEY);
+  if (localHash) {
+    return {
+      hasCustom: true,
+      source: 'local',
+    };
+  }
+
+  return {
+    hasCustom: false,
+    source: 'default',
+  };
+}
+

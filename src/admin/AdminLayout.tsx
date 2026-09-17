@@ -91,10 +91,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout, onViewPublic
                   ? 'bg-aji-600 text-white border-aji-600 font-bold'
                   : 'bg-stone-900 text-stone-300 border-stone-800 hover:text-white hover:bg-stone-850'
               }`}
-              title="Ajustes de Supabase y Telegram"
+              title="Ajustes de Seguridad, Contraseña, Supabase y Telegram"
             >
               <Settings className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Supabase & Telegram</span>
+              <span className="hidden sm:inline">Ajustes & Claves</span>
             </button>
           </nav>
 

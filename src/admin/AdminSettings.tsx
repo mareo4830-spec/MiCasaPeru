@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Database, 
   Send, 
@@ -9,7 +9,12 @@ import {
   Info, 
   Copy, 
   Check, 
-  RefreshCw 
+  RefreshCw,
+  KeyRound,
+  Lock,
+  Eye,
+  EyeOff,
+  RotateCcw
 } from 'lucide-react';
 import { 
   getSupabaseConfiguration, 
@@ -25,6 +30,36 @@ import {
   isTelegramConfigured,
   sendTestTelegramNotification 
 } from '../services/telegramService';
+import {
+  updateAdminPassword,
+  resetAdminPasswordToDefault,
+  checkHasCustomPassword
+} from '../utils/security';
+
+const ADMIN_CONFIG_SQL = `-- 1. Crea la tabla de configuración segura si no existe
+create table if not exists public.admin_config (
+  key text primary key,
+  value text not null,
+  description text default '',
+  updated_at timestamptz default timezone('utc'::text, now())
+);
+
+-- 2. Habilita Row Level Security
+alter table public.admin_config enable row level security;
+
+-- 3. Políticas de acceso para verificación y actualización
+drop policy if exists "Lectura de config admin" on public.admin_config;
+create policy "Lectura de config admin" 
+  on public.admin_config for select 
+  to anon, authenticated 
+  using (true);
+
+drop policy if exists "Modificación de config admin" on public.admin_config;
+create policy "Modificación de config admin" 
+  on public.admin_config for all 
+  to anon, authenticated 
+  using (true) 
+  with check (true);`;
 
 const SUPABASE_SQL_SCHEMA = `-- Copia y pega esto en el SQL Editor de tu proyecto en Supabase
 
@@ -135,6 +170,31 @@ create or replace view public.public_reservation_slots as
   where status in ('confirmada', 'pendiente');
 
 grant select on public.public_reservation_slots to anon, authenticated;
+
+-- 4. TABLA DE CONFIGURACIÓN Y CLAVE ADMIN (SINCRONIZADA PARA TODOS)
+create table if not exists public.admin_config (
+  key text primary key,
+  value text not null,
+  description text default '',
+  updated_at timestamptz default timezone('utc'::text, now())
+);
+
+alter table public.admin_config enable row level security;
+
+-- Política de lectura para verificación de acceso en el login
+drop policy if exists "Lectura de config admin" on public.admin_config;
+create policy "Lectura de config admin" 
+  on public.admin_config for select 
+  to anon, authenticated 
+  using (true);
+
+-- Política de modificación
+drop policy if exists "Modificación de config admin" on public.admin_config;
+create policy "Modificación de config admin" 
+  on public.admin_config for all 
+  to anon, authenticated 
+  using (true) 
+  with check (true);
 `;
 
 export const AdminSettings: React.FC = () => {
@@ -154,6 +214,105 @@ export const AdminSettings: React.FC = () => {
 
   // General Notice
   const [copiedSql, setCopiedSql] = useState(false);
+
+  // Admin Password Management State
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordStatus, setPasswordStatus] = useState<{
+    hasCustom: boolean;
+    source: 'supabase' | 'local' | 'default';
+    updatedAt?: string;
+  }>({ hasCustom: false, source: 'default' });
+  const [passwordFeedback, setPasswordFeedback] = useState<{
+    type: 'success' | 'error' | 'warning';
+    message: string;
+    showSql?: boolean;
+  } | null>(null);
+  const [copiedMiniSql, setCopiedMiniSql] = useState(false);
+
+  useEffect(() => {
+    checkHasCustomPassword().then((status) => {
+      setPasswordStatus(status);
+    });
+  }, []);
+
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordFeedback(null);
+
+    const pass = newPassword.trim();
+    if (pass.length < 6) {
+      setPasswordFeedback({
+        type: 'error',
+        message: 'La contraseña debe contener al menos 6 caracteres por seguridad.',
+      });
+      return;
+    }
+
+    if (pass !== confirmPassword.trim()) {
+      setPasswordFeedback({
+        type: 'error',
+        message: 'Las contraseñas no coinciden. Por favor, asegúrate de escribirlas idénticas en ambos campos.',
+      });
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      const res = await updateAdminPassword(pass);
+      if (res.tableNeedsCreation) {
+        setPasswordFeedback({
+          type: 'warning',
+          message: res.message,
+          showSql: true,
+        });
+      } else if (res.success) {
+        setPasswordFeedback({
+          type: 'success',
+          message: res.message,
+        });
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setPasswordFeedback({
+          type: 'error',
+          message: res.message,
+        });
+      }
+
+      const updated = await checkHasCustomPassword();
+      setPasswordStatus(updated);
+    } catch (err: any) {
+      setPasswordFeedback({
+        type: 'error',
+        message: err?.message || 'Error inesperado al guardar la contraseña.',
+      });
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (confirm('¿Restablecer la contraseña a la clave inicial por defecto (micasaperu2026)?')) {
+      const res = await resetAdminPasswordToDefault();
+      setPasswordFeedback({
+        type: 'success',
+        message: res.message,
+      });
+      setNewPassword('');
+      setConfirmPassword('');
+      const updated = await checkHasCustomPassword();
+      setPasswordStatus(updated);
+    }
+  };
+
+  const copyMiniSqlToClipboard = () => {
+    navigator.clipboard.writeText(ADMIN_CONFIG_SQL);
+    setCopiedMiniSql(true);
+    setTimeout(() => setCopiedMiniSql(false), 3000);
+  };
 
   const handleSaveSupabase = (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,11 +388,164 @@ export const AdminSettings: React.FC = () => {
       {/* Header */}
       <div className="border-b border-stone-200 pb-4">
         <h3 className="font-serif text-2xl font-bold text-ink">
-          Conexiones en la Nube (Supabase & Telegram)
+          Configuración y Seguridad del Sistema
         </h3>
         <p className="font-mono text-xs text-stone-500">
-          Gestiona la sincronización en tiempo real de productos y reservas, y las alertas al instante en Telegram.
+          Gestiona la contraseña maestra centralizada, conexiones en la nube (Supabase & Telegram) y esquemas SQL.
         </p>
+      </div>
+
+      {/* SECTION 0: ADMIN PASSWORD MANAGEMENT (CENTRALIZED) */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="p-2 border bg-stone-900 border-stone-800 text-amber-400">
+              <KeyRound className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-serif text-lg font-bold text-ink flex items-center gap-2">
+                <span>Contraseña Maestra de Administración</span>
+                <span className={`px-2 py-0.5 font-mono text-[10px] font-bold uppercase border ${
+                  passwordStatus.source === 'supabase'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : passwordStatus.source === 'local'
+                    ? 'bg-amber-100 text-amber-800 border-amber-300'
+                    : 'bg-stone-100 text-stone-700 border-stone-300'
+                }`}>
+                  {passwordStatus.source === 'supabase'
+                    ? '● Activa en Supabase (Para Todos)'
+                    : passwordStatus.source === 'local'
+                    ? '▲ Guardada en Local'
+                    : '○ Clave Inicial (micasaperu2026)'}
+                </span>
+              </h4>
+              <p className="font-mono text-xs text-stone-500">
+                Esta contraseña se guarda en la base de datos para que todos los dispositivos y administradores usen la misma clave.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleResetPassword}
+            className="px-3 py-1.5 border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 font-mono text-xs flex items-center gap-1.5 self-start sm:self-auto transition-colors"
+            title="Restablecer a micasaperu2026"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-stone-500" />
+            <span>Restablecer a inicial</span>
+          </button>
+        </div>
+
+        {/* Feedback Alert */}
+        {passwordFeedback && (
+          <div
+            className={`p-4 border font-mono text-xs space-y-3 ${
+              passwordFeedback.type === 'success'
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                : passwordFeedback.type === 'warning'
+                ? 'bg-amber-50 border-amber-300 text-amber-900'
+                : 'bg-red-50 border-red-300 text-red-900'
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              {passwordFeedback.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1 font-sans text-xs">
+                <p className="font-medium">{passwordFeedback.message}</p>
+              </div>
+            </div>
+
+            {passwordFeedback.showSql && (
+              <div className="mt-3 pt-3 border-t border-amber-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[11px] font-bold text-amber-950">
+                    SQL para crear tabla en Supabase (ejecutar en SQL Editor):
+                  </span>
+                  <button
+                    type="button"
+                    onClick={copyMiniSqlToClipboard}
+                    className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-amber-900 font-mono text-[10px] font-bold flex items-center gap-1 transition-colors"
+                  >
+                    {copiedMiniSql ? <Check className="w-3 h-3 text-emerald-700" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedMiniSql ? '¡Copiado!' : 'Copiar SQL'}</span>
+                  </button>
+                </div>
+                <pre className="p-3 bg-stone-900 text-emerald-400 font-mono text-[10px] overflow-x-auto rounded">
+                  {ADMIN_CONFIG_SQL}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Change Password Form */}
+        <form onSubmit={handleSavePassword} className="bg-white border border-stone-200 p-5 sm:p-6 space-y-4 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-mono text-xs uppercase tracking-wider text-stone-600 mb-1.5">
+                Nueva Contraseña <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres..."
+                  className="w-full bg-stone-50 border border-stone-300 px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-ink font-mono pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-mono text-xs uppercase tracking-wider text-stone-600 mb-1.5">
+                Repetir Nueva Contraseña <span className="text-red-500">*</span>
+              </label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repite la misma contraseña..."
+                className="w-full bg-stone-50 border border-stone-300 px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-ink font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-stone-100">
+            <span className="font-mono text-[11px] text-stone-500 flex items-center gap-1">
+              <Lock className="w-3.5 h-3.5 text-stone-400" />
+              <span>Cifrado unidireccional SHA-256 de grado criptográfico</span>
+            </span>
+
+            <button
+              type="submit"
+              disabled={savingPassword || !newPassword.trim() || !confirmPassword.trim()}
+              className="w-full sm:w-auto px-5 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors font-bold shadow-sm"
+            >
+              {savingPassword ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                  <span>Sincronizando...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Guardar Contraseña Para Todos</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* SECTION 1: SUPABASE CONFIGURATION */}
