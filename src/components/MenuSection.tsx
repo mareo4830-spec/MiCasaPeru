@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Flame, Sparkles, RefreshCw, Filter, Utensils, Check } from 'lucide-react';
 import { MenuItem, DishCategory } from '../types';
-import { fetchMenuItems } from '../services/menuService';
-import { isFirebaseOnline } from '../services/firebase';
+import { fetchMenuItems, subscribeToMenuChanges } from '../services/menuService';
+import { isSupabaseOnline } from '../services/supabase';
 import { DishModal } from './DishModal';
 
 interface MenuSectionProps {
@@ -31,6 +31,12 @@ export const MenuSection: React.FC<MenuSectionProps> = ({ onSelectDishForReserva
 
   useEffect(() => {
     loadMenu();
+    const unsubscribe = subscribeToMenuChanges(() => {
+      loadMenu();
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   // Category definitions with Spanish labels
@@ -83,8 +89,8 @@ export const MenuSection: React.FC<MenuSectionProps> = ({ onSelectDishForReserva
                 [ 02 · Colección Gastronómica ]
               </span>
               <span className="font-mono text-[11px] text-stone-500 flex items-center gap-1 bg-stone-200/80 px-2 py-0.5 border border-stone-300">
-                <span className={`w-1.5 h-1.5 rounded-full ${isFirebaseOnline() ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                <span>{isFirebaseOnline() ? 'Firestore Live (menuItems)' : 'Cache Local Activo'}</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseOnline() ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                <span>{isSupabaseOnline() ? 'Supabase Live (menu_items)' : 'Caché Local'}</span>
               </span>
             </div>
             <h2 className="font-serif text-3xl sm:text-5xl font-bold text-ink">
@@ -97,7 +103,7 @@ export const MenuSection: React.FC<MenuSectionProps> = ({ onSelectDishForReserva
               onClick={loadMenu}
               disabled={loading}
               className="p-2.5 border border-stone-300 hover:border-stone-800 text-stone-600 hover:text-stone-900 bg-stone-100 transition-colors"
-              title="Actualizar carta desde Firestore"
+              title="Actualizar carta desde Supabase"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-aji-600' : ''}`} />
             </button>

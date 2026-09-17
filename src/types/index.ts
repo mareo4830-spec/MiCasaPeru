@@ -40,3 +40,15 @@ export interface FirebaseConfigStatus {
   projectId?: string;
   isFallback: boolean;
 }
+
+export interface SupabaseConfigStatus {
+  isConfigured: boolean;
+  url?: string;
+  isFallback: boolean;
+}
+
+export interface TelegramConfigStatus {
+  isConfigured: boolean;
+  hasBotToken: boolean;
+  hasChatId: boolean;
+}

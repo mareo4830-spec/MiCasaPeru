@@ -3,7 +3,8 @@ import { Utensils, Calendar, Settings, LogOut, ExternalLink, ShieldCheck, Databa
 import { AdminMenu } from './AdminMenu';
 import { AdminReservations } from './AdminReservations';
 import { AdminSettings } from './AdminSettings';
-import { isFirebaseOnline } from '../services/firebase';
+import { isSupabaseOnline } from '../services/supabase';
+import { isTelegramConfigured } from '../services/telegramService';
 
 interface AdminLayoutProps {
   onLogout: () => void;
@@ -11,7 +12,10 @@ interface AdminLayoutProps {
 }
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout, onViewPublic }) => {
-  const [activeTab, setActiveTab] = useState<'menu' | 'reservations' | 'settings'>('menu');
+  const [activeTab, setActiveTab] = useState<'menu' | 'reservations' | 'settings'>('reservations');
+
+  const isOnline = isSupabaseOnline();
+  const hasTelegram = isTelegramConfigured();
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900 font-sans pb-16">
@@ -36,29 +40,26 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout, onViewPublic
               </span>
             </div>
 
-            {/* Live indicator */}
-            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-stone-900 border border-stone-800 font-mono text-[10px]">
-              <span className={`w-2 h-2 rounded-full ${isFirebaseOnline() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
-              <span className="text-stone-300">
-                {isFirebaseOnline() ? 'Firestore Activo' : 'Modo Seguro Local'}
-              </span>
+            {/* Live indicators */}
+            <div className="hidden md:flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-stone-900 border border-stone-800 font-mono text-[10px]">
+                <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                <span className="text-stone-300">
+                  {isOnline ? 'Supabase Conectado' : 'Modo Local Seguro'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-stone-900 border border-stone-800 font-mono text-[10px]">
+                <span className={`w-2 h-2 rounded-full ${hasTelegram ? 'bg-sky-400' : 'bg-stone-600'}`}></span>
+                <span className="text-stone-300">
+                  {hasTelegram ? 'Telegram Activo' : 'Telegram Off'}
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Nav Tabs */}
           <nav className="flex items-center gap-1 font-mono text-xs">
-            <button
-              onClick={() => setActiveTab('menu')}
-              className={`px-3.5 py-2 border transition-colors flex items-center gap-1.5 ${
-                activeTab === 'menu'
-                  ? 'bg-aji-600 text-white border-aji-600 font-bold'
-                  : 'bg-stone-900 text-stone-300 border-stone-800 hover:text-white hover:bg-stone-850'
-              }`}
-            >
-              <Utensils className="w-3.5 h-3.5" />
-              <span>Carta (menuItems)</span>
-            </button>
-
             <button
               onClick={() => setActiveTab('reservations')}
               className={`px-3.5 py-2 border transition-colors flex items-center gap-1.5 ${
@@ -68,7 +69,19 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout, onViewPublic
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>Reservas (reservations)</span>
+              <span>Reservas & Hoy</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('menu')}
+              className={`px-3.5 py-2 border transition-colors flex items-center gap-1.5 ${
+                activeTab === 'menu'
+                  ? 'bg-aji-600 text-white border-aji-600 font-bold'
+                  : 'bg-stone-900 text-stone-300 border-stone-800 hover:text-white hover:bg-stone-850'
+              }`}
+            >
+              <Utensils className="w-3.5 h-3.5" />
+              <span>Carta & Platos</span>
             </button>
 
             <button
@@ -78,10 +91,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout, onViewPublic
                   ? 'bg-aji-600 text-white border-aji-600 font-bold'
                   : 'bg-stone-900 text-stone-300 border-stone-800 hover:text-white hover:bg-stone-850'
               }`}
-              title="Ajustes de Firebase"
+              title="Ajustes de Supabase y Telegram"
             >
               <Settings className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Firebase</span>
+              <span className="hidden sm:inline">Supabase & Telegram</span>
             </button>
           </nav>
 

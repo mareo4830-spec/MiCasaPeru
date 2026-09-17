@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
-import { Calendar, Clock, Users, MapPin, Send, AlertCircle, Phone, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, Users, MapPin, Send, AlertCircle, Phone, Info, ShieldAlert, Sparkles } from 'lucide-react';
 import { Reservation } from '../types';
-import { createReservation } from '../services/reservationService';
+import { 
+  createReservation, 
+  fetchReservations, 
+  subscribeToReservationChanges,
+  getSlotAvailability,
+  getTodayDateString,
+  LUNCH_SLOTS,
+  DINNER_SLOTS,
+  MAX_TABLES_PER_WINDOW 
+} from '../services/reservationService';
 import { ReservationTicket } from './ReservationTicket';
 
 export const ReservationSection: React.FC = () => {
-  // Today formatted as YYYY-MM-DD for min date
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Today formatted as YYYY-MM-DD in local time
+  const todayStr = getTodayDateString();
 
   const [date, setDate] = useState(todayStr);
   const [shift, setShift] = useState<'almuerzo' | 'cena'>('almuerzo');
@@ -19,19 +28,57 @@ export const ReservationSection: React.FC = () => {
   const [specialRequests, setSpecialRequests] = useState('');
   const [allergies, setAllergies] = useState('');
 
+  const [existingReservations, setExistingReservations] = useState<Reservation[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedReservation, setConfirmedReservation] = useState<Reservation | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Time slot options depending on shift
-  const lunchSlots = ['13:30', '14:00', '14:30', '15:00', '15:30'];
-  const dinnerSlots = ['20:30', '21:00', '21:30', '22:00', '22:30'];
+  // Load existing reservations and listen in real-time
+  useEffect(() => {
+    const loadData = () => {
+      fetchReservations().then(setExistingReservations).catch(console.error);
+    };
+    loadData();
 
-  const availableSlots = shift === 'almuerzo' ? lunchSlots : dinnerSlots;
+    const unsubscribe = subscribeToReservationChanges(() => {
+      loadData();
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  const availableSlots = shift === 'almuerzo' ? LUNCH_SLOTS : DINNER_SLOTS;
+
+  // Auto-adjust selected timeSlot if invalid (past or full)
+  useEffect(() => {
+    const slots = shift === 'almuerzo' ? LUNCH_SLOTS : DINNER_SLOTS;
+    const currentAvail = timeSlot ? getSlotAvailability(date, timeSlot, existingReservations) : null;
+
+    if (!currentAvail || !currentAvail.canBook) {
+      const firstValid = slots.find((s) => getSlotAvailability(date, s, existingReservations).canBook);
+      if (firstValid) {
+        setTimeSlot(firstValid);
+      } else {
+        // If whole lunch shift has passed today, automatically offer dinner
+        if (shift === 'almuerzo' && date === todayStr) {
+          const firstDinner = DINNER_SLOTS.find((s) => getSlotAvailability(date, s, existingReservations).canBook);
+          if (firstDinner) {
+            setShift('cena');
+            setTimeSlot(firstDinner);
+            return;
+          }
+        }
+        setTimeSlot('');
+      }
+    }
+  }, [date, shift, existingReservations, timeSlot, todayStr]);
 
   const handleShiftChange = (newShift: 'almuerzo' | 'cena') => {
     setShift(newShift);
-    setTimeSlot(newShift === 'almuerzo' ? '14:00' : '21:00');
+    const slots = newShift === 'almuerzo' ? LUNCH_SLOTS : DINNER_SLOTS;
+    const firstValid = slots.find((s) => getSlotAvailability(date, s, existingReservations).canBook);
+    setTimeSlot(firstValid || (newShift === 'almuerzo' ? '14:00' : '21:00'));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +96,21 @@ export const ReservationSection: React.FC = () => {
     }
     if (!date) {
       setErrorMessage('Por favor, selecciona una fecha válida.');
+      return;
+    }
+    if (!timeSlot) {
+      setErrorMessage('Por favor, selecciona una hora disponible para tu reserva.');
+      return;
+    }
+
+    // Availability validation check
+    const avail = getSlotAvailability(date, timeSlot, existingReservations);
+    if (avail.isPast) {
+      setErrorMessage('No es posible reservar en una hora o fecha que ya ha pasado.');
+      return;
+    }
+    if (avail.isFull) {
+      setErrorMessage(`Lo sentimos, el aforo máximo de ${MAX_TABLES_PER_WINDOW} mesas para las ${timeSlot}h ya está completo en ese tramo de hora y media. Elige otro horario disponible.`);
       return;
     }
 
@@ -69,9 +131,9 @@ export const ReservationSection: React.FC = () => {
       });
 
       setConfirmedReservation(result);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error al tramitar la reserva:', err);
-      setErrorMessage('Ocurrió un error al registrar la reserva. Por favor, inténtalo de nuevo o llámanos al 643 56 72 50.');
+      setErrorMessage(err?.message || 'Ocurrió un error al registrar la reserva. Por favor, inténtalo de nuevo o llámanos al 643 56 72 50.');
     } finally {
       setIsSubmitting(false);
     }
@@ -177,25 +239,69 @@ export const ReservationSection: React.FC = () => {
 
                   {/* Time slot chips */}
                   <div>
-                    <label className="block font-mono text-xs uppercase text-stone-600 mb-2">
-                      Hora exacta deseada
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {availableSlots.map((slot) => (
-                        <button
-                          key={slot}
-                          type="button"
-                          onClick={() => setTimeSlot(slot)}
-                          className={`px-4 py-2 font-mono text-xs transition-all border ${
-                            timeSlot === slot
-                              ? 'bg-aji-600 text-white border-aji-600 font-bold'
-                              : 'bg-white text-stone-800 border-stone-300 hover:border-stone-600'
-                          }`}
-                        >
-                          {slot} h
-                        </button>
-                      ))}
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block font-mono text-xs uppercase text-stone-600">
+                        Hora exacta deseada
+                      </label>
+                      <span className="font-mono text-[11px] text-stone-500 flex items-center gap-1">
+                        <Info className="w-3 h-3 text-aji-600" />
+                        <span>Máx. 5 mesas por franja de 1h 30m</span>
+                      </span>
                     </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                      {availableSlots.map((slot) => {
+                        const avail = getSlotAvailability(date, slot, existingReservations);
+                        const isSelected = timeSlot === slot;
+
+                        return (
+                          <button
+                            key={slot}
+                            type="button"
+                            disabled={!avail.canBook}
+                            onClick={() => setTimeSlot(slot)}
+                            className={`p-2.5 font-mono text-xs transition-all border flex flex-col items-center justify-center text-center gap-1 ${
+                              !avail.canBook
+                                ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed opacity-60'
+                                : isSelected
+                                ? 'bg-aji-600 text-white border-aji-600 font-bold shadow-md ring-2 ring-aji-400 ring-offset-1'
+                                : 'bg-white text-stone-800 border-stone-300 hover:border-stone-800 hover:bg-stone-50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1 font-bold text-sm">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span className={avail.isPast ? 'line-through text-stone-400' : ''}>
+                                {slot} h
+                              </span>
+                            </div>
+
+                            <span className="text-[10px] leading-tight">
+                              {avail.isPast ? (
+                                <span className="text-stone-400">Hora pasada</span>
+                              ) : avail.isFull ? (
+                                <span className="text-red-700 font-bold">Completo (5/5)</span>
+                              ) : (
+                                <span className={isSelected ? 'text-white/90' : 'text-stone-500'}>
+                                  {avail.remaining === 1 ? '¡Última mesa!' : `${avail.remaining} mesas disp.`}
+                                </span>
+                              )}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Notice if no slots are available in this shift */}
+                    {!availableSlots.some((s) => getSlotAvailability(date, s, existingReservations).canBook) && (
+                      <div className="mt-3 p-3 bg-amber-50 border border-amber-300 text-amber-900 font-mono text-xs flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+                        <span>
+                          {date === todayStr && shift === 'almuerzo'
+                            ? 'El turno de almuerzo de hoy ya ha finalizado o está completo. Te recomendamos seleccionar el turno de Cena o una fecha posterior.'
+                            : 'No quedan mesas disponibles en este turno para la fecha elegida. Por favor, selecciona el otro turno o un día diferente.'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

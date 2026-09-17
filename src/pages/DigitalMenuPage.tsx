@@ -14,8 +14,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { MenuItem, DishCategory } from '../types';
-import { fetchMenuItems } from '../services/menuService';
-import { isFirebaseOnline } from '../services/firebase';
+import { fetchMenuItems, subscribeToMenuChanges } from '../services/menuService';
 import { DishModal } from '../components/DishModal';
 
 interface DigitalMenuPageProps {
@@ -64,6 +63,12 @@ export const DigitalMenuPage: React.FC<DigitalMenuPageProps> = ({ onGoToFullWeb 
 
   useEffect(() => {
     loadMenu();
+    const unsubscribe = subscribeToMenuChanges(() => {
+      loadMenu();
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const categories: { key: DishCategory; label: string }[] = [

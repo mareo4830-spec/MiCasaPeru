@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Edit2, Trash2, CheckCircle2, XCircle, Flame, Sparkles, RefreshCw, AlertTriangle, Image as ImageIcon, Upload, Link, Grid3X3, X } from 'lucide-react';
 import { MenuItem, DishCategory } from '../types';
-import { fetchMenuItems, addMenuItem, updateMenuItem, deleteMenuItem, seedInitialMenu } from '../services/menuService';
+import { fetchMenuItems, addMenuItem, updateMenuItem, deleteMenuItem, seedInitialMenu, subscribeToMenuChanges } from '../services/menuService';
 
 const ALLERGEN_OPTIONS = [
   'Pescado', 'Crustáceos', 'Moluscos', 'Gluten', 'Lácteos', 
@@ -158,6 +158,12 @@ export const AdminMenu: React.FC = () => {
 
   useEffect(() => {
     loadItems();
+    const unsubscribe = subscribeToMenuChanges(() => {
+      loadItems();
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const openCreateModal = () => {
