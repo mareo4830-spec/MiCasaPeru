@@ -1,6 +1,13 @@
 import { getSupabaseClient, isSupabaseOnline } from './supabase';
 import { sendTelegramReservationNotification } from './telegramService';
 import { Reservation, ReservationStatus } from '../types';
+import { 
+  isSessionValid, 
+  validateCustomerName, 
+  validateCustomerPhone, 
+  validateCustomerEmail, 
+  validateNotes 
+} from '../utils/security';
 
 const TABLE_NAME = 'reservations';
 const LOCAL_STORAGE_KEY = 'mcp_reservations_cache';
@@ -205,46 +212,102 @@ function mapReservationToRow(res: Partial<Reservation>) {
 
 export async function fetchReservations(): Promise<Reservation[]> {
   const supabase = getSupabaseClient();
+  const isAdmin = isSessionValid();
 
   if (isSupabaseOnline() && supabase) {
     try {
-      const { data, error } = await supabase
-        .from(TABLE_NAME)
-        .select('*')
-        .order('date', { ascending: false })
-        .order('time_slot', { ascending: true });
+      if (isAdmin) {
+        // Modo Administrador: consulta completa de reservas con credenciales autenticadas
+        const { data, error } = await supabase
+          .from(TABLE_NAME)
+          .select('*')
+          .order('date', { ascending: false })
+          .order('time_slot', { ascending: true });
 
-      if (error) {
-        console.warn('[Supabase] Error al consultar reservations en la nube:', error.message);
-        return getLocalReservations();
-      }
-
-      if (data && data.length > 0) {
-        const reservations = data.map(mapRowToReservation);
-        saveLocalReservations(reservations);
-        return reservations;
+        if (!error && data && data.length > 0) {
+          const reservations = data.map(mapRowToReservation);
+          saveLocalReservations(reservations);
+          return reservations;
+        } else if (error) {
+          console.warn('[Supabase] Error al consultar reservations (admin):', error.message);
+        }
       } else {
-        // Fallback or empty
-        return getLocalReservations();
+        // Modo Público / Anónimo: Zero Trust RGPD.
+        // Consulta la vista anonimizada public_reservation_slots para calcular el aforo sin exponer datos privados.
+        const { data, error } = await supabase
+          .from('public_reservation_slots')
+          .select('id, date, time_slot, status');
+
+        if (!error && data) {
+          return data.map((row: any) => ({
+            id: String(row.id),
+            ticketCode: '***',
+            customerName: 'Comensal Confirmado',
+            customerPhone: '***',
+            customerEmail: '',
+            date: row.date,
+            timeSlot: row.time_slot,
+            shift: LUNCH_SLOTS.includes(row.time_slot) ? 'almuerzo' : 'cena',
+            diners: 2,
+            locationPreference: 'indiferente',
+            specialRequests: '',
+            allergies: '',
+            status: row.status as ReservationStatus,
+            createdAt: new Date().toISOString(),
+          }));
+        } else if (error) {
+          // Si la vista aún no está creada, no podemos filtrar anónimamente de la tabla privada
+          console.info('[Supabase] Vista public_reservation_slots no disponible o restringida por RLS.');
+        }
       }
     } catch (err) {
       console.warn('[Supabase] Fallo de red al consultar reservas:', err);
-      return getLocalReservations();
     }
   }
 
-  return getLocalReservations();
+  // Fallback local: Si es admin devuelve todo, si es anónimo devuelve los registros anonimizados
+  const local = getLocalReservations();
+  if (isAdmin) return local;
+
+  return local.map((r) => ({
+    ...r,
+    ticketCode: '***',
+    customerName: 'Comensal Confirmado',
+    customerPhone: '***',
+    customerEmail: '',
+    specialRequests: '',
+    allergies: '',
+  }));
 }
 
 export async function createReservation(
   data: Omit<Reservation, 'id' | 'ticketCode' | 'createdAt' | 'status'>
 ): Promise<Reservation> {
-  // 1. Validar que la fecha y hora no hayan pasado
+  // 1. Sanitización y validación estricta de inputs (Zero Trust XSS & Injection Prevention)
+  const nameVal = validateCustomerName(data.customerName);
+  if (!nameVal.isValid) {
+    throw new Error(nameVal.error || 'Nombre de cliente inválido.');
+  }
+
+  const phoneVal = validateCustomerPhone(data.customerPhone);
+  if (!phoneVal.isValid) {
+    throw new Error(phoneVal.error || 'Número de teléfono inválido.');
+  }
+
+  const emailVal = validateCustomerEmail(data.customerEmail);
+  if (!emailVal.isValid) {
+    throw new Error(emailVal.error || 'Correo electrónico no válido.');
+  }
+
+  const notesVal = validateNotes(data.specialRequests || '', 250);
+  const allergiesVal = validateNotes(data.allergies || '', 200);
+
+  // 2. Validar que la fecha y hora no hayan pasado
   if (isTimeSlotInPast(data.date, data.timeSlot)) {
     throw new Error('No es posible reservar en una fecha u hora que ya ha pasado.');
   }
 
-  // 2. Validar aforo máximo de 5 mesas en ventana de 1 hora y media (90 min)
+  // 3. Validar aforo máximo de 5 mesas en ventana de 1 hora y media (90 min)
   const existingReservations = await fetchReservations();
   const occupiedTables = getTableOccupationCount(data.date, data.timeSlot, existingReservations);
   if (occupiedTables >= MAX_TABLES_PER_WINDOW) {
@@ -258,19 +321,24 @@ export async function createReservation(
   const nowISO = new Date().toISOString();
   const id = 'res-' + Date.now();
 
-  const newReservation: Reservation = {
+  const sanitizedReservation: Reservation = {
     ...data,
+    customerName: nameVal.sanitizedValue,
+    customerPhone: phoneVal.sanitizedValue,
+    customerEmail: emailVal.sanitizedValue,
+    specialRequests: notesVal.sanitizedValue,
+    allergies: allergiesVal.sanitizedValue,
     id,
     ticketCode,
     status: 'confirmada', // Auto-confirmada con localizador digital
     createdAt: nowISO,
   };
 
-  // 1. Guardar en Supabase si está disponible
+  // 4. Guardar en Supabase si está disponible
   if (isSupabaseOnline() && supabase) {
     try {
       const row = {
-        ...mapReservationToRow(newReservation),
+        ...mapReservationToRow(sanitizedReservation),
         created_at: nowISO,
       };
 
@@ -283,28 +351,24 @@ export async function createReservation(
       if (error) {
         console.warn('[Supabase] Error al guardar reserva en Supabase:', error.message);
       } else if (insertedData) {
-        newReservation.id = String(insertedData.id);
+        sanitizedReservation.id = String(insertedData.id);
       }
     } catch (err) {
       console.warn('[Supabase] Excepción al guardar reserva en Supabase:', err);
     }
   }
 
-  // 2. Persistir siempre en el caché local
+  // 5. Persistir siempre en el caché local
   const local = getLocalReservations();
-  const updated = [newReservation, ...local];
+  const updated = [sanitizedReservation, ...local];
   saveLocalReservations(updated);
 
-  // 3. DISPARAR NOTIFICACIÓN A TELEGRAM DE INMEDIATO
-  try {
-    sendTelegramReservationNotification(newReservation).catch((tErr) => {
-      console.warn('[Telegram] No se pudo enviar notificación:', tErr);
-    });
-  } catch (err) {
-    console.warn('[Telegram] Error al invocar servicio de Telegram:', err);
-  }
+  // 6. Enviar notificación instantánea a Telegram (con datos desinfectados)
+  sendTelegramReservationNotification(sanitizedReservation).catch((err) => {
+    console.error('[Telegram] Fallo al enviar notificación en segundo plano:', err);
+  });
 
-  return newReservation;
+  return sanitizedReservation;
 }
 
 export async function updateReservationStatus(id: string, status: ReservationStatus): Promise<void> {

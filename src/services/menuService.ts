@@ -1,6 +1,7 @@
 import { getSupabaseClient, isSupabaseOnline } from './supabase';
 import { MenuItem } from '../types';
 import { INITIAL_MENU } from '../data/initialMenu';
+import { sanitizeInput } from '../utils/security';
 
 const TABLE_NAME = 'menu_items';
 const LOCAL_STORAGE_KEY = 'mcp_menu_items_cache';
@@ -101,7 +102,16 @@ export async function fetchMenuItems(): Promise<MenuItem[]> {
 export async function addMenuItem(newItem: Omit<MenuItem, 'id'>): Promise<MenuItem> {
   const supabase = getSupabaseClient();
   const id = 'item-' + Date.now();
-  const itemToStore: MenuItem = { ...newItem, id };
+  const itemToStore: MenuItem = {
+    ...newItem,
+    id,
+    name: sanitizeInput(newItem.name, 100),
+    description: sanitizeInput(newItem.description || '', 500),
+    fusionNotes: sanitizeInput(newItem.fusionNotes || '', 300),
+    imageUrl: sanitizeInput(newItem.imageUrl || '', 800),
+    ingredients: (newItem.ingredients || []).map((ing) => sanitizeInput(ing, 80)).filter(Boolean),
+    allergens: (newItem.allergens || []).map((al) => sanitizeInput(al, 50)).filter(Boolean),
+  };
 
   if (isSupabaseOnline() && supabase) {
     try {
@@ -138,9 +148,21 @@ export async function addMenuItem(newItem: Omit<MenuItem, 'id'>): Promise<MenuIt
 export async function updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<void> {
   const supabase = getSupabaseClient();
 
+  const sanitizedUpdates: Partial<MenuItem> = { ...updates };
+  if (updates.name !== undefined) sanitizedUpdates.name = sanitizeInput(updates.name, 100);
+  if (updates.description !== undefined) sanitizedUpdates.description = sanitizeInput(updates.description, 500);
+  if (updates.fusionNotes !== undefined) sanitizedUpdates.fusionNotes = sanitizeInput(updates.fusionNotes, 300);
+  if (updates.imageUrl !== undefined) sanitizedUpdates.imageUrl = sanitizeInput(updates.imageUrl, 800);
+  if (updates.ingredients !== undefined) {
+    sanitizedUpdates.ingredients = updates.ingredients.map((ing) => sanitizeInput(ing, 80)).filter(Boolean);
+  }
+  if (updates.allergens !== undefined) {
+    sanitizedUpdates.allergens = updates.allergens.map((al) => sanitizeInput(al, 50)).filter(Boolean);
+  }
+
   if (isSupabaseOnline() && supabase) {
     try {
-      const rowUpdates = mapMenuItemToRow(updates);
+      const rowUpdates = mapMenuItemToRow(sanitizedUpdates);
       const { error } = await supabase
         .from(TABLE_NAME)
         .update(rowUpdates)
@@ -155,7 +177,7 @@ export async function updateMenuItem(id: string, updates: Partial<MenuItem>): Pr
   }
 
   const local = getLocalMenuItems();
-  const updated = local.map((item) => (item.id === id ? { ...item, ...updates } : item));
+  const updated = local.map((item) => (item.id === id ? { ...item, ...sanitizedUpdates } : item));
   saveLocalMenuItems(updated);
 }
 

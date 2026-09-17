@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Users, MapPin, Send, AlertCircle, Phone, Info, ShieldAlert, Sparkles } from 'lucide-react';
+import { Send, AlertCircle, Info, Clock, Phone } from 'lucide-react';
 import { Reservation } from '../types';
 import { 
   createReservation, 
@@ -13,7 +13,18 @@ import {
 } from '../services/reservationService';
 import { ReservationTicket } from './ReservationTicket';
 
-export const ReservationSection: React.FC = () => {
+import { AppView } from '../App';
+import { 
+  validateCustomerName, 
+  validateCustomerPhone, 
+  validateCustomerEmail 
+} from '../utils/security';
+
+interface ReservationSectionProps {
+  onNavigateLegal?: (view: AppView) => void;
+}
+
+export const ReservationSection: React.FC<ReservationSectionProps> = ({ onNavigateLegal }) => {
   // Today formatted as YYYY-MM-DD in local time
   const todayStr = getTodayDateString();
 
@@ -27,6 +38,7 @@ export const ReservationSection: React.FC = () => {
   const [customerEmail, setCustomerEmail] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
   const [allergies, setAllergies] = useState('');
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   const [existingReservations, setExistingReservations] = useState<Reservation[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,21 +97,39 @@ export const ReservationSection: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
-    // Validation
-    if (!customerName.trim()) {
-      setErrorMessage('Por favor, indica tu nombre completo.');
+    // 1. Validación estricta y desinfección XSS de campos de cliente
+    const nameCheck = validateCustomerName(customerName);
+    if (!nameCheck.isValid) {
+      setErrorMessage(nameCheck.error || 'Por favor, indica tu nombre completo válido.');
       return;
     }
-    if (!customerPhone.trim() || customerPhone.replace(/\s+/g, '').length < 9) {
-      setErrorMessage('Por favor, introduce un número de teléfono válido para confirmar la mesa.');
+
+    const phoneCheck = validateCustomerPhone(customerPhone);
+    if (!phoneCheck.isValid) {
+      setErrorMessage(phoneCheck.error || 'Por favor, introduce un número de teléfono válido (9 a 15 dígitos).');
       return;
     }
+
+    if (customerEmail.trim()) {
+      const emailCheck = validateCustomerEmail(customerEmail);
+      if (!emailCheck.isValid) {
+        setErrorMessage(emailCheck.error || 'Por favor, introduce un correo electrónico válido.');
+        return;
+      }
+    }
+
     if (!date) {
       setErrorMessage('Por favor, selecciona una fecha válida.');
       return;
     }
     if (!timeSlot) {
       setErrorMessage('Por favor, selecciona una hora disponible para tu reserva.');
+      return;
+    }
+
+    // RGPD Privacy consent check
+    if (!privacyAccepted) {
+      setErrorMessage('Debes leer y aceptar la Política de Privacidad para tramitar tu reserva conforme al RGPD.');
       return;
     }
 
@@ -118,9 +148,9 @@ export const ReservationSection: React.FC = () => {
 
     try {
       const result = await createReservation({
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
-        customerEmail: customerEmail.trim() || `${customerName.toLowerCase().replace(/\s+/g, '')}@reserva.mcp`,
+        customerName: nameCheck.sanitizedValue,
+        customerPhone: phoneCheck.sanitizedValue,
+        customerEmail: customerEmail.trim() || `${nameCheck.sanitizedValue.toLowerCase().replace(/\s+/g, '')}@reserva.mcp`,
         date,
         timeSlot,
         shift,
@@ -146,6 +176,7 @@ export const ReservationSection: React.FC = () => {
     setCustomerEmail('');
     setSpecialRequests('');
     setAllergies('');
+    setPrivacyAccepted(false);
   };
 
   return (
@@ -384,6 +415,7 @@ export const ReservationSection: React.FC = () => {
                         type="text"
                         placeholder="Ej. Rodrigo Álvarez"
                         value={customerName}
+                        maxLength={80}
                         onChange={(e) => setCustomerName(e.target.value)}
                         required
                         className="w-full px-3.5 py-2.5 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900 placeholder:text-stone-400"
@@ -398,6 +430,7 @@ export const ReservationSection: React.FC = () => {
                         type="tel"
                         placeholder="Ej. 643 56 72 50"
                         value={customerPhone}
+                        maxLength={20}
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         required
                         className="w-full px-3.5 py-2.5 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900 placeholder:text-stone-400"
@@ -412,6 +445,7 @@ export const ReservationSection: React.FC = () => {
                         type="email"
                         placeholder="tu-correo@ejemplo.com"
                         value={customerEmail}
+                        maxLength={100}
                         onChange={(e) => setCustomerEmail(e.target.value)}
                         className="w-full px-3.5 py-2.5 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900 placeholder:text-stone-400"
                       />
@@ -425,6 +459,7 @@ export const ReservationSection: React.FC = () => {
                         type="text"
                         placeholder="Ej. Celíaco, alérgico al marisco..."
                         value={allergies}
+                        maxLength={200}
                         onChange={(e) => setAllergies(e.target.value)}
                         className="w-full px-3.5 py-2.5 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900 placeholder:text-stone-400"
                       />
@@ -438,11 +473,47 @@ export const ReservationSection: React.FC = () => {
                         type="text"
                         placeholder="Ej. Trona de bebé, cumpleaños..."
                         value={specialRequests}
+                        maxLength={250}
                         onChange={(e) => setSpecialRequests(e.target.value)}
                         className="w-full px-3.5 py-2.5 bg-white border border-stone-300 text-sm font-sans focus:outline-none focus:border-stone-900 placeholder:text-stone-400"
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* RGPD Mandatory Consent Checkbox */}
+                <div className="pt-2 border-t border-stone-200">
+                  <label className="flex items-start gap-3 cursor-pointer group select-none">
+                    <input
+                      type="checkbox"
+                      id="rgpd-privacy-consent"
+                      checked={privacyAccepted}
+                      onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                      required
+                      className="mt-1 w-4 h-4 text-stone-900 border-stone-300 rounded focus:ring-stone-900 focus:ring-1 cursor-pointer accent-stone-900 shrink-0"
+                    />
+                    <span className="text-xs text-stone-600 font-sans leading-relaxed">
+                      <span className="font-semibold text-stone-800">He leído y acepto la</span>{' '}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (onNavigateLegal) {
+                            onNavigateLegal('politica-privacidad');
+                          } else {
+                            window.location.hash = 'politica-privacidad';
+                          }
+                        }}
+                        className="font-medium text-stone-900 underline underline-offset-2 hover:text-aji-700 transition-colors"
+                      >
+                        Política de Privacidad
+                      </button>
+                      <span className="text-red-600 ml-0.5">*</span>{' '}
+                      <span className="block text-[11px] text-stone-400 mt-0.5 font-mono">
+                        (Responsable: [NOMBRE_EMPRESA]. Finalidad: Gestión y confirmación de la reserva. Base jurídica: Consentimiento y ejecución del servicio. No se cederán datos a terceros salvo imperativo legal).
+                      </span>
+                    </span>
+                  </label>
                 </div>
 
                 {/* Submit button */}

@@ -1,4 +1,5 @@
 import { Reservation, TelegramConfigStatus } from '../types';
+import { escapeHtml } from '../utils/security';
 
 const STORAGE_KEY = 'mcp_telegram_config';
 
@@ -91,11 +92,11 @@ export async function sendTelegramReservationNotification(
 ⏰ <b>Hora:</b> ${reservation.timeSlot} (${shiftLabel})
 👥 <b>Comensales:</b> ${reservation.diners} personas
 📍 <b>Zona:</b> ${locationLabel}
-🎫 <b>Localizador:</b> <code>${reservation.ticketCode}</code>
+🎫 <b>Localizador:</b> <code>${escapeHtml(reservation.ticketCode)}</code>
 
 👤 <b>Cliente:</b> ${escapeHtml(reservation.customerName)}
-📞 <b>Teléfono:</b> <a href="tel:${reservation.customerPhone.replace(/\s+/g, '')}">${reservation.customerPhone}</a>
-${reservation.customerEmail ? `✉️ <b>Email:</b> ${reservation.customerEmail}\n` : ''}${reservation.allergies ? `⚠️ <b>Alergias / Intolerancias:</b> <b>${escapeHtml(reservation.allergies)}</b>\n` : ''}${reservation.specialRequests ? `📝 <b>Notas Especiales:</b> <i>${escapeHtml(reservation.specialRequests)}</i>\n` : ''}━━━━━━━━━━━━━━━━━━━━
+📞 <b>Teléfono:</b> <a href="tel:${reservation.customerPhone.replace(/\s+/g, '')}">${escapeHtml(reservation.customerPhone)}</a>
+${reservation.customerEmail ? `✉️ <b>Email:</b> ${escapeHtml(reservation.customerEmail)}\n` : ''}${reservation.allergies ? `⚠️ <b>Alergias / Intolerancias:</b> <b>${escapeHtml(reservation.allergies)}</b>\n` : ''}${reservation.specialRequests ? `📝 <b>Notas Especiales:</b> <i>${escapeHtml(reservation.specialRequests)}</i>\n` : ''}━━━━━━━━━━━━━━━━━━━━
 Estado: <b>${reservation.status.toUpperCase()}</b>`;
 
   try {
@@ -183,11 +184,3 @@ Recibirás aquí automáticamente cada nueva reserva que hagan tus comensales en
   }
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}

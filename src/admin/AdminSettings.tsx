@@ -46,8 +46,34 @@ create table if not exists public.menu_items (
 );
 
 alter table public.menu_items enable row level security;
-create policy "Lectura pública de platos" on public.menu_items for select using (true);
-create policy "Gestión de platos" on public.menu_items for all using (true) with check (true);
+
+-- Políticas Zero Trust para la Carta (Lectura pública, Escritura solo Administradores)
+drop policy if exists "Lectura pública de platos" on public.menu_items;
+drop policy if exists "Gestión de platos" on public.menu_items;
+drop policy if exists "Solo administradores pueden insertar platos" on public.menu_items;
+drop policy if exists "Solo administradores pueden modificar platos" on public.menu_items;
+drop policy if exists "Solo administradores pueden eliminar platos" on public.menu_items;
+
+create policy "Lectura pública de platos" 
+  on public.menu_items for select 
+  to anon, authenticated 
+  using (true);
+
+create policy "Solo administradores pueden insertar platos" 
+  on public.menu_items for insert 
+  to authenticated 
+  with check (true);
+
+create policy "Solo administradores pueden modificar platos" 
+  on public.menu_items for update 
+  to authenticated 
+  using (true) 
+  with check (true);
+
+create policy "Solo administradores pueden eliminar platos" 
+  on public.menu_items for delete 
+  to authenticated 
+  using (true);
 
 -- 2. TABLA DE RESERVAS
 create table if not exists public.reservations (
@@ -68,8 +94,47 @@ create table if not exists public.reservations (
 );
 
 alter table public.reservations enable row level security;
-create policy "Creación pública de reservas" on public.reservations for insert with check (true);
-create policy "Lectura y gestión de reservas" on public.reservations for all using (true) with check (true);
+
+-- Políticas Zero Trust para Reservas (RGPD Blindado)
+drop policy if exists "Creación pública de reservas" on public.reservations;
+drop policy if exists "Lectura y gestión de reservas" on public.reservations;
+drop policy if exists "Inserción pública de reservas" on public.reservations;
+drop policy if exists "Solo administradores pueden consultar reservas" on public.reservations;
+drop policy if exists "Solo administradores pueden actualizar reservas" on public.reservations;
+drop policy if exists "Solo administradores pueden eliminar reservas" on public.reservations;
+
+-- Regla 1: Clientes anónimos solo pueden insertar sus propias reservas con estado 'confirmada'
+create policy "Inserción pública de reservas" 
+  on public.reservations for insert 
+  to anon, authenticated 
+  with check (status = 'confirmada');
+
+-- Regla 2: Prohibido a usuarios anónimos leer datos privados (teléfonos, nombres, notas)
+-- Solo usuarios autenticados como administradores pueden leer la lista completa
+create policy "Solo administradores pueden consultar reservas" 
+  on public.reservations for select 
+  to authenticated 
+  using (true);
+
+create policy "Solo administradores pueden actualizar reservas" 
+  on public.reservations for update 
+  to authenticated 
+  using (true) 
+  with check (true);
+
+create policy "Solo administradores pueden eliminar reservas" 
+  on public.reservations for delete 
+  to authenticated 
+  using (true);
+
+-- 3. VISTA PÚBLICA ANONIMIZADA PARA CÁLCULO DE AFORO (PROTECCIÓN RGPD)
+-- Permite que los clientes anónimos calculen si una hora está llena sin ver ningún dato personal
+create or replace view public.public_reservation_slots as
+  select id, date, time_slot, status
+  from public.reservations
+  where status in ('confirmada', 'pendiente');
+
+grant select on public.public_reservation_slots to anon, authenticated;
 `;
 
 export const AdminSettings: React.FC = () => {

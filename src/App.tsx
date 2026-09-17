@@ -10,18 +10,34 @@ import { Footer } from './components/Footer';
 import { AdminLayout } from './admin/AdminLayout';
 import { AdminLogin } from './admin/AdminLogin';
 import { DigitalMenuPage } from './pages/DigitalMenuPage';
+import { CookieConsent } from './components/CookieConsent';
+import { AvisoLegalPage } from './pages/legal/AvisoLegalPage';
+import { PoliticaPrivacidadPage } from './pages/legal/PoliticaPrivacidadPage';
+import { PoliticaCookiesPage } from './pages/legal/PoliticaCookiesPage';
+import { TerminosCondicionesPage } from './pages/legal/TerminosCondicionesPage';
+import { isSessionValid, clearAdminSession } from './utils/security';
+import { getSupabaseClient } from './services/supabase';
 
-export type AppView = 'public' | 'admin' | 'carta';
+export type AppView = 
+  | 'public' 
+  | 'admin' 
+  | 'carta' 
+  | 'aviso-legal' 
+  | 'politica-privacidad' 
+  | 'politica-cookies' 
+  | 'terminos-condiciones';
 
 export function App() {
   const [currentView, setCurrentView] = useState<AppView>('public');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
 
-  // Sync pathname & hash routing
+  // Sync pathname & hash routing with active session verification
   useEffect(() => {
     const routeCheck = () => {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
+      const validSession = isSessionValid();
+      setIsAdminAuthenticated(validSession);
 
       if (path.startsWith('/admin') || hash === '#admin') {
         setCurrentView('admin');
@@ -35,16 +51,28 @@ export function App() {
         window.location.search.includes('mesa=')
       ) {
         setCurrentView('carta');
+      } else if (path.startsWith('/aviso-legal') || hash === '#aviso-legal') {
+        setCurrentView('aviso-legal');
+      } else if (path.startsWith('/politica-privacidad') || hash === '#politica-privacidad' || hash === '#privacidad') {
+        setCurrentView('politica-privacidad');
+      } else if (path.startsWith('/politica-cookies') || hash === '#politica-cookies' || hash === '#cookies') {
+        setCurrentView('politica-cookies');
+      } else if (path.startsWith('/terminos-condiciones') || hash === '#terminos-condiciones' || hash === '#terminos') {
+        setCurrentView('terminos-condiciones');
       } else {
         // If hash is an anchor like #reservas or #contacto, stay in public view
-        if (currentView !== 'carta' && currentView !== 'admin') {
+        if (
+          currentView !== 'carta' && 
+          currentView !== 'admin' &&
+          currentView !== 'aviso-legal' &&
+          currentView !== 'politica-privacidad' &&
+          currentView !== 'politica-cookies' &&
+          currentView !== 'terminos-condiciones'
+        ) {
           setCurrentView('public');
         }
       }
     };
-
-    const isAuth = sessionStorage.getItem('mcp_admin_authenticated') === 'true';
-    setIsAdminAuthenticated(isAuth);
 
     routeCheck();
     window.addEventListener('hashchange', routeCheck);
@@ -53,7 +81,7 @@ export function App() {
       window.removeEventListener('hashchange', routeCheck);
       window.removeEventListener('popstate', routeCheck);
     };
-  }, []);
+  }, [currentView]);
 
   const handleNavigate = (view: AppView) => {
     setCurrentView(view);
@@ -61,26 +89,56 @@ export function App() {
       window.location.hash = '#admin';
     } else if (view === 'carta') {
       window.location.hash = '#carta-digital';
+    } else if (view === 'aviso-legal') {
+      window.location.hash = '#aviso-legal';
+    } else if (view === 'politica-privacidad') {
+      window.location.hash = '#politica-privacidad';
+    } else if (view === 'politica-cookies') {
+      window.location.hash = '#politica-cookies';
+    } else if (view === 'terminos-condiciones') {
+      window.location.hash = '#terminos-condiciones';
     } else {
-      if (window.location.hash === '#admin' || window.location.hash.startsWith('#carta-digital')) {
+      const specialHashes = [
+        '#admin', 
+        '#carta-digital', 
+        '#aviso-legal', 
+        '#politica-privacidad', 
+        '#privacidad', 
+        '#politica-cookies', 
+        '#cookies', 
+        '#terminos-condiciones', 
+        '#terminos'
+      ];
+      if (specialHashes.some(h => window.location.hash.startsWith(h))) {
         window.location.hash = '';
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLoginSuccess = () => {
     setIsAdminAuthenticated(true);
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('mcp_admin_authenticated');
+  const handleLogout = async () => {
+    clearAdminSession();
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+    }
     setIsAdminAuthenticated(false);
     handleNavigate('public');
   };
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans selection:bg-aji-600 selection:text-white">
+      {/* Floating RGPD Cookie Banner & Settings Modal */}
+      <CookieConsent onNavigateLegal={handleNavigate} />
+
       {currentView === 'carta' ? (
         <DigitalMenuPage onGoToFullWeb={() => handleNavigate('public')} />
       ) : currentView === 'admin' ? (
@@ -95,6 +153,14 @@ export function App() {
             onCancel={() => handleNavigate('public')} 
           />
         )
+      ) : currentView === 'aviso-legal' ? (
+        <AvisoLegalPage onNavigate={handleNavigate} />
+      ) : currentView === 'politica-privacidad' ? (
+        <PoliticaPrivacidadPage onNavigate={handleNavigate} />
+      ) : currentView === 'politica-cookies' ? (
+        <PoliticaCookiesPage onNavigate={handleNavigate} />
+      ) : currentView === 'terminos-condiciones' ? (
+        <TerminosCondicionesPage onNavigate={handleNavigate} />
       ) : (
         <>
           <Navbar 
@@ -107,10 +173,13 @@ export function App() {
             <ServiceHighlights />
             <MenuSection />
             <StoryFusion />
-            <ReservationSection />
+            <ReservationSection onNavigateLegal={handleNavigate} />
             <LocationContact />
           </main>
-          <Footer onNavigateAdmin={() => handleNavigate('admin')} />
+          <Footer 
+            onNavigateAdmin={() => handleNavigate('admin')} 
+            onNavigateLegal={handleNavigate} 
+          />
         </>
       )}
     </div>
