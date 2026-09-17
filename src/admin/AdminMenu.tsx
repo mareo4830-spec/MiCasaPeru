@@ -20,6 +20,14 @@ const PRESET_IMAGES = [
 
 type ImageMode = 'upload' | 'url' | 'presets';
 
+const CATEGORY_NAMES: Record<string, string> = {
+  ceviches: 'Ceviches & Mar',
+  entrantes: 'Entrantes & Causas',
+  fondos: 'Fondos & Brasas',
+  postres: 'Postres',
+  bebidas: 'Pisco Bar',
+};
+
 export const AdminMenu: React.FC = () => {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -362,8 +370,211 @@ export const AdminMenu: React.FC = () => {
         ))}
       </div>
 
-      {/* Dishes Table */}
-      <div className="bg-white border border-stone-300 shadow-sm overflow-x-auto">
+      {/* Mobile Card View (Todas las características visibles sin scroll horizontal) */}
+      <div className="block md:hidden space-y-4">
+        {loading ? (
+          <div className="bg-white border border-stone-300 p-8 text-center font-mono text-stone-500 shadow-sm">
+            <RefreshCw className="w-5 h-5 animate-spin mx-auto text-aji-600 mb-2" />
+            Cargando platos desde Firestore...
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="bg-white border border-stone-300 p-8 text-center text-stone-500 font-mono shadow-sm">
+            No hay platos en esta categoría.
+          </div>
+        ) : (
+          filteredItems.map((item) => (
+            <div
+              key={item.id}
+              className={`bg-white border transition-shadow shadow-sm overflow-hidden ${
+                item.isAvailable ? 'border-stone-300' : 'border-stone-300 bg-stone-50/70 opacity-95'
+              }`}
+            >
+              {/* Header: Foto + Datos Principales */}
+              <div className="p-4 border-b border-stone-100 flex gap-3.5 items-start">
+                <img
+                  src={item.imageUrl}
+                  alt={item.name}
+                  className="w-20 h-20 sm:w-24 sm:h-24 object-cover border border-stone-300 shrink-0 bg-stone-100 shadow-xs"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+                
+                <div className="flex-1 min-w-0">
+                  {/* Categoría y Distintivos */}
+                  <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                    <span className="font-mono text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-stone-100 text-stone-700 border border-stone-200">
+                      {CATEGORY_NAMES[item.category] || item.category}
+                    </span>
+                    {item.isChefChoice && (
+                      <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1">
+                        ★ Chef
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Nombre del Plato */}
+                  <h4 className="font-serif text-lg font-bold text-ink leading-snug break-words">
+                    {item.name}
+                  </h4>
+
+                  {/* Precio */}
+                  <div className="mt-1">
+                    <span className="font-mono text-base font-bold text-aji-700">
+                      {item.price.toFixed(2).replace('.', ',')} €
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cuerpo: Todas las características sin recortar */}
+              <div className="p-4 space-y-3 font-sans text-xs">
+                {/* Descripción completa */}
+                {item.description && (
+                  <div>
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-stone-400 block mb-0.5">
+                      Descripción
+                    </span>
+                    <p className="text-stone-700 leading-relaxed break-words">
+                      {item.description}
+                    </p>
+                  </div>
+                )}
+
+                {/* Toque Fusión Perú - Huelva */}
+                {item.fusionNotes && (
+                  <div className="bg-stone-100 border-l-2 border-aji-600 p-2.5">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-aji-700 font-bold block mb-0.5">
+                      Toque Fusión Perú · Huelva
+                    </span>
+                    <p className="text-stone-700 italic font-serif text-xs break-words">
+                      "{item.fusionNotes}"
+                    </p>
+                  </div>
+                )}
+
+                {/* Ingredientes Principales */}
+                {item.ingredients && item.ingredients.length > 0 && (
+                  <div>
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-stone-400 block mb-1">
+                      Ingredientes Principales
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {item.ingredients.map((ing, i) => (
+                        <span
+                          key={i}
+                          className="font-mono text-[11px] bg-stone-100 text-stone-700 px-2 py-0.5 border border-stone-200"
+                        >
+                          {ing}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Fila: Picante & Alérgenos */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-stone-100">
+                  {/* Picante */}
+                  <div>
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-stone-400 block mb-1">
+                      Nivel de Picante
+                    </span>
+                    <div className="flex items-center gap-1 font-mono text-xs">
+                      {item.spicyLevel === 0 ? (
+                        <span className="px-2 py-0.5 bg-stone-100 text-stone-600 border border-stone-200 text-[11px]">
+                          🌿 Suave (Sin picante)
+                        </span>
+                      ) : item.spicyLevel === 1 ? (
+                        <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-semibold flex items-center gap-1">
+                          🌶️ Suave
+                        </span>
+                      ) : item.spicyLevel === 2 ? (
+                        <span className="px-2 py-0.5 bg-orange-50 text-orange-800 border border-orange-200 text-[11px] font-semibold flex items-center gap-1">
+                          🌶️🌶️ Medio (Ají Amarillo)
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-red-50 text-red-800 border border-red-200 text-[11px] font-semibold flex items-center gap-1">
+                          🌶️🌶️🌶️ Intenso (Rocoto)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Alérgenos */}
+                  <div>
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-stone-400 block mb-1">
+                      Alérgenos
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {item.allergens && item.allergens.length > 0 ? (
+                        item.allergens.map((alg, i) => (
+                          <span
+                            key={i}
+                            className="font-mono text-[10px] bg-stone-100 text-stone-700 px-1.5 py-0.5 border border-stone-200"
+                          >
+                            {alg}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="font-mono text-[11px] text-stone-400 italic">
+                          Sin alérgenos declarados
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pie de Tarjeta: Estado Interactivo + Botones de Acción */}
+              <div className="p-3 bg-stone-50 border-t border-stone-200 flex flex-wrap items-center justify-between gap-2">
+                {/* Conmutador de disponibilidad rápido */}
+                <button
+                  onClick={() => handleToggleAvailability(item)}
+                  className={`font-mono text-xs px-3 py-1.5 border flex items-center gap-1.5 font-bold transition-all shadow-xs active:scale-95 ${
+                    item.isAvailable
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-400 hover:bg-emerald-100'
+                      : 'bg-stone-200 text-stone-700 border-stone-300 hover:bg-stone-300'
+                  }`}
+                  title="Toca para cambiar la disponibilidad del plato"
+                >
+                  {item.isAvailable ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Disponible en Carta</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+                      <span>Agotado / Desactivado</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Acciones de Edición y Eliminación */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openEditModal(item)}
+                    className="px-3 py-1.5 bg-white border border-stone-300 hover:border-stone-800 text-stone-800 font-mono text-xs flex items-center gap-1.5 transition-colors shadow-xs active:scale-95"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 text-stone-600" />
+                    <span>Editar</span>
+                  </button>
+                  <button
+                    onClick={() => setDeleteCandidate(item)}
+                    className="px-3 py-1.5 bg-white border border-red-200 hover:border-red-600 text-red-600 hover:bg-red-50 font-mono text-xs flex items-center gap-1.5 transition-colors shadow-xs active:scale-95"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                    <span>Eliminar</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Dishes Table (Visible en pantallas medianas y grandes) */}
+      <div className="hidden md:block bg-white border border-stone-300 shadow-sm overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-100 font-mono text-[11px] uppercase tracking-wider text-stone-600">
