@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Utensils, Calendar, Settings, LogOut, ExternalLink, ShieldCheck, Database } from 'lucide-react';
+import { Utensils, Calendar, KeyRound, LogOut, ExternalLink } from 'lucide-react';
 import { AdminMenu } from './AdminMenu';
 import { AdminReservations } from './AdminReservations';
 import { AdminSettings } from './AdminSettings';
@@ -86,15 +86,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout, onViewPublic
 
             <button
               onClick={() => setActiveTab('settings')}
-              className={`px-3 py-2 border transition-colors flex items-center gap-1.5 ${
+              className={`px-3.5 py-2 border transition-colors flex items-center gap-1.5 ${
                 activeTab === 'settings'
                   ? 'bg-aji-600 text-white border-aji-600 font-bold'
                   : 'bg-stone-900 text-stone-300 border-stone-800 hover:text-white hover:bg-stone-850'
               }`}
-              title="Ajustes de Seguridad, Contraseña, Supabase y Telegram"
+              title="Cambiar contraseña de administración"
             >
-              <Settings className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Ajustes & Claves</span>
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Contraseña</span>
             </button>
           </nav>
 

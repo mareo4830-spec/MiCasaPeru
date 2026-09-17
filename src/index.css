@@ -9,12 +9,22 @@
   
   html {
     background-color: #FAF9F5;
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
     background-color: #FAF9F5;
     color: #1A1714;
     overflow-x: hidden;
+    touch-action: manipulation;
+  }
+
+  /* Prevenir el auto-zoom indeseado en dispositivos móviles (iOS/Safari) al tocar inputs */
+  @media screen and (max-width: 768px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
   }
 
   /* Editorial titles */
