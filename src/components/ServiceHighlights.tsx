@@ -166,7 +166,17 @@ export const ServiceHighlights: React.FC<ServiceHighlightsProps> = ({ onNavigate
             <div className="pt-6 mt-6 border-t border-stone-200">
               <a
                 href="#carta"
-                className="w-full py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-900 font-mono text-xs uppercase tracking-widest text-center flex items-center justify-center gap-2 transition-colors border border-stone-300 font-bold"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const target = document.getElementById('carta');
+                  if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    window.history.pushState(null, '', '#carta');
+                  } else {
+                    window.location.hash = '#carta';
+                  }
+                }}
+                className="w-full py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-900 font-mono text-xs uppercase tracking-widest text-center flex items-center justify-center gap-2 transition-colors border border-stone-300 font-bold cursor-pointer"
               >
                 <span>Ver Coctelería en Carta</span>
                 <ArrowUpRight className="w-3.5 h-3.5 text-aji-600" />

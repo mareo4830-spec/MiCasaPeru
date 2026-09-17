@@ -70,7 +70,23 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onOpenN
               </a>
               <a 
                 href="#carta" 
-                className="text-stone-700 hover:text-aji-700 transition-colors flex items-center gap-1.5 tracking-wide"
+                onClick={(e) => {
+                  if (currentView === 'public') {
+                    e.preventDefault();
+                    const el = document.getElementById('carta');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth' });
+                      window.history.pushState(null, '', '#carta');
+                    }
+                  } else {
+                    e.preventDefault();
+                    onNavigate('public');
+                    setTimeout(() => {
+                      document.getElementById('carta')?.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                  }
+                }}
+                className="text-stone-700 hover:text-aji-700 transition-colors flex items-center gap-1.5 tracking-wide cursor-pointer"
               >
                 <Utensils className="w-4 h-4 text-aji-600" />
                 <span>La Carta</span>
@@ -173,8 +189,24 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onOpenN
           </a>
           <a 
             href="#carta" 
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-stone-800 border-b border-stone-200 flex items-center justify-between"
+            onClick={(e) => {
+              setMobileMenuOpen(false);
+              if (currentView === 'public') {
+                e.preventDefault();
+                const el = document.getElementById('carta');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth' });
+                  window.history.pushState(null, '', '#carta');
+                }
+              } else {
+                e.preventDefault();
+                onNavigate('public');
+                setTimeout(() => {
+                  document.getElementById('carta')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }
+            }}
+            className="block py-2 text-stone-800 border-b border-stone-200 flex items-center justify-between cursor-pointer"
           >
             <span>Carta Dinámica</span>
             <span className="text-aji-600">→</span>

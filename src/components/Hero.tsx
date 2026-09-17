@@ -3,9 +3,10 @@ import { ArrowDownRight, Sparkles, MapPin, Clock, Compass, ShieldCheck } from 'l
 
 interface HeroProps {
   onNavigateReservas?: () => void;
+  onNavigateCarta?: () => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onNavigateReservas }) => {
+export const Hero: React.FC<HeroProps> = ({ onNavigateReservas, onNavigateCarta }) => {
   return (
     <section id="inicio" className="relative border-b border-stone-200 bg-grain overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-12 pb-16 lg:py-20">
@@ -54,7 +55,19 @@ export const Hero: React.FC<HeroProps> = ({ onNavigateReservas }) => {
             <div className="flex flex-wrap items-center gap-4 pt-2">
               <a
                 href="#carta"
-                className="px-6 py-3.5 bg-stone-900 hover:bg-stone-800 text-stone-50 text-xs font-mono uppercase tracking-widest transition-all flex items-center gap-2 group"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const target = document.getElementById('carta');
+                  if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    window.history.pushState(null, '', '#carta');
+                  } else if (onNavigateCarta) {
+                    onNavigateCarta();
+                  } else {
+                    window.location.hash = '#carta';
+                  }
+                }}
+                className="px-6 py-3.5 bg-stone-900 hover:bg-stone-800 text-stone-50 text-xs font-mono uppercase tracking-widest transition-all flex items-center gap-2 group cursor-pointer"
               >
                 <span>Descubrir la Carta</span>
                 <ArrowDownRight className="w-4 h-4 text-aji-400 group-hover:translate-x-0.5 group-hover:translate-y-0.5 transition-transform" />

@@ -70,21 +70,29 @@ export function App() {
         setCurrentView('politica-cookies');
       } else if (path.startsWith('/terminos-condiciones') || hash === '#terminos-condiciones' || hash === '#terminos') {
         setCurrentView('terminos-condiciones');
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       } else {
-        // If hash is an anchor like #contacto, stay in public view
-        if (
-          currentView !== 'carta' && 
-          currentView !== 'reservas' &&
-          currentView !== 'admin' &&
-          currentView !== 'aviso-legal' &&
-          currentView !== 'politica-privacidad' &&
-          currentView !== 'politica-cookies' &&
-          currentView !== 'terminos-condiciones'
-        ) {
-          setCurrentView('public');
+        // Public homepage or in-page anchor (#carta, #servicios, #fusion, #contacto)
+        const wasDifferentView = currentView !== 'public';
+        setCurrentView('public');
+
+        if (hash && hash.startsWith('#') && hash.length > 1) {
+          const targetId = hash.substring(1);
+          const scrollAction = () => {
+            const el = document.getElementById(targetId);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth' });
+            }
+          };
+          if (wasDifferentView) {
+            setTimeout(scrollAction, 100);
+          } else {
+            scrollAction();
+          }
+        } else {
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
         }
       }
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     };
 
     routeCheck();
@@ -192,7 +200,15 @@ export function App() {
             onOpenNfcMenu={() => handleNavigate('carta')} 
           />
           <main>
-            <Hero onNavigateReservas={() => handleNavigate('reservas')} />
+            <Hero 
+              onNavigateReservas={() => handleNavigate('reservas')} 
+              onNavigateCarta={() => {
+                const el = document.getElementById('carta');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+            />
             <ServiceHighlights onNavigateReservas={() => handleNavigate('reservas')} />
             <MenuSection onNavigateReservas={() => handleNavigate('reservas')} />
             <StoryFusion />
