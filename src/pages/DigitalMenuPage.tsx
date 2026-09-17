@@ -327,8 +327,10 @@ export const DigitalMenuPage: React.FC<DigitalMenuPageProps> = ({ onGoToFullWeb 
                     </div>
                   )}
                   {item.spicyLevel > 0 && (
-                    <div className="absolute bottom-1.5 right-1.5 bg-stone-900/90 text-aji-400 text-[10px] font-mono px-1.5 py-0.5 border border-stone-700">
-                      {'🌶️'.repeat(item.spicyLevel)}
+                    <div className="absolute bottom-1.5 right-1.5 bg-stone-900/90 text-red-500 px-1.5 py-0.5 border border-stone-700 flex items-center gap-0.5">
+                      {Array.from({ length: item.spicyLevel }).map((_, i) => (
+                        <Flame key={i} className="w-2.5 h-2.5 fill-red-500" />
+                      ))}
                     </div>
                   )}
                 </div>

@@ -16,7 +16,12 @@ import {
   Utensils, 
   ExternalLink, 
   MessageCircle,
-  AlertTriangle
+  AlertTriangle,
+  Sun,
+  Moon,
+  Armchair,
+  Trees,
+  Download
 } from 'lucide-react';
 import { Reservation, ShiftType, LocationPreference, ReservationStatus } from '../types';
 import { 
@@ -79,6 +84,11 @@ export const ReservationsPage: React.FC<ReservationsPageProps> = ({ onBackToHome
   useEffect(() => {
     loadReservations();
   }, [date]);
+
+  // Ensure view resets to top on initial page load and on every wizard step change
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [step]);
 
   const loadReservations = async () => {
     try {
@@ -350,7 +360,9 @@ export const ReservationsPage: React.FC<ReservationsPageProps> = ({ onBackToHome
                       : 'bg-stone-50 border-stone-200 text-stone-700 hover:border-stone-300'
                   }`}
                 >
-                  <span className="text-2xl">☀️</span>
+                  <div className="p-2 bg-amber-500/20 text-amber-700 border border-amber-500/30 shrink-0">
+                    <Sun className="w-5 h-5" />
+                  </div>
                   <div>
                     <span className="font-serif font-bold text-base block text-ink">Almuerzo / Comida</span>
                     <span className="font-mono text-xs text-stone-500 block mt-0.5">Pases entre 13:30h y 15:30h</span>
@@ -369,7 +381,9 @@ export const ReservationsPage: React.FC<ReservationsPageProps> = ({ onBackToHome
                       : 'bg-stone-50 border-stone-200 text-stone-700 hover:border-stone-300'
                   }`}
                 >
-                  <span className="text-2xl">🌙</span>
+                  <div className="p-2 bg-sky-500/20 text-sky-700 border border-sky-500/30 shrink-0">
+                    <Moon className="w-5 h-5" />
+                  </div>
                   <div>
                     <span className="font-serif font-bold text-base block text-ink">Cena / Noche</span>
                     <span className="font-mono text-xs text-stone-500 block mt-0.5">Pases entre 20:30h y 22:30h</span>
@@ -438,14 +452,14 @@ export const ReservationsPage: React.FC<ReservationsPageProps> = ({ onBackToHome
                       }`}
                     >
                       <span className="text-xl font-bold block">{slot}h</span>
-                      <span className="text-[11px] block mt-1">
+                      <span className="text-[11px] block mt-1 font-sans">
                         {isPast
-                          ? '⏰ Pasada'
+                          ? 'Horario pasado'
                           : !avail.canBook
-                          ? '🔴 Completo'
+                          ? 'Agotado'
                           : isSelected
-                          ? '✓ Seleccionado'
-                          : `🟢 ${avail.remaining} mesas disp.`}
+                          ? 'Seleccionado'
+                          : `${avail.remaining} mesas disp.`}
                       </span>
                     </button>
                   );
@@ -461,27 +475,30 @@ export const ReservationsPage: React.FC<ReservationsPageProps> = ({ onBackToHome
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
-                  { id: 'salon', label: 'Salón Principal', icon: '🛋️', desc: 'Climatizado y exclusivo' },
-                  { id: 'terraza', label: 'Terraza Exterior', icon: '🌿', desc: 'Ambiente fresco y abierto' },
-                  { id: 'indiferente', label: 'Indiferente', icon: '✨', desc: 'Primera mesa libre' },
-                ].map((loc) => (
-                  <button
-                    key={loc.id}
-                    type="button"
-                    onClick={() => setLocationPreference(loc.id as LocationPreference)}
-                    className={`p-3.5 text-left border transition-all ${
-                      locationPreference === loc.id
-                        ? 'bg-ink text-white border-ink shadow-sm'
-                        : 'bg-stone-50 text-stone-800 border-stone-200 hover:border-stone-300 hover:bg-white'
-                    }`}
-                  >
-                    <span className="text-xl block mb-1">{loc.icon}</span>
-                    <span className="font-serif font-bold text-sm block">{loc.label}</span>
-                    <span className={`font-mono text-[10px] block mt-0.5 ${locationPreference === loc.id ? 'text-stone-300' : 'text-stone-500'}`}>
-                      {loc.desc}
-                    </span>
-                  </button>
-                ))}
+                  { id: 'salon', label: 'Salón Principal', icon: Armchair, desc: 'Climatizado y exclusivo' },
+                  { id: 'terraza', label: 'Terraza Exterior', icon: Trees, desc: 'Ambiente fresco y abierto' },
+                  { id: 'indiferente', label: 'Indiferente', icon: Sparkles, desc: 'Primera mesa libre' },
+                ].map((loc) => {
+                  const Icon = loc.icon;
+                  return (
+                    <button
+                      key={loc.id}
+                      type="button"
+                      onClick={() => setLocationPreference(loc.id as LocationPreference)}
+                      className={`p-3.5 text-left border transition-all ${
+                        locationPreference === loc.id
+                          ? 'bg-ink text-white border-ink shadow-sm'
+                          : 'bg-stone-50 text-stone-800 border-stone-200 hover:border-stone-300 hover:bg-white'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 mb-2 ${locationPreference === loc.id ? 'text-aji-400' : 'text-stone-700'}`} />
+                      <span className="font-serif font-bold text-sm block">{loc.label}</span>
+                      <span className={`font-mono text-[10px] block mt-0.5 ${locationPreference === loc.id ? 'text-stone-300' : 'text-stone-500'}`}>
+                        {loc.desc}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -740,8 +757,9 @@ export const ReservationsPage: React.FC<ReservationsPageProps> = ({ onBackToHome
                 <div className="font-mono text-xs text-stone-600 space-y-1">
                   <p><strong>Titular:</strong> {confirmedReservation.customerName} ({confirmedReservation.customerPhone})</p>
                   {confirmedReservation.allergies && (
-                    <p className="text-amber-800 bg-amber-50 p-2 border border-amber-200 mt-2">
-                      ⚠️ <strong>Alergias anotadas:</strong> {confirmedReservation.allergies}
+                    <p className="text-amber-800 bg-amber-50 p-2 border border-amber-200 mt-2 flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0" />
+                      <span><strong>Alergias anotadas:</strong> {confirmedReservation.allergies}</span>
                     </p>
                   )}
                 </div>
@@ -773,7 +791,9 @@ export const ReservationsPage: React.FC<ReservationsPageProps> = ({ onBackToHome
                   className="p-4 bg-stone-50 hover:bg-stone-100 border border-stone-300 text-stone-900 font-mono text-xs font-bold flex items-center justify-between transition-all group shadow-sm"
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xl">📅</span>
+                    <div className="p-2 bg-stone-200 text-stone-800 border border-stone-300">
+                      <CalendarIcon className="w-4 h-4" />
+                    </div>
                     <div>
                       <span className="block text-ink">Añadir a Google Calendar</span>
                       <span className="text-[10px] text-stone-500 font-normal">Abre directamente en tu cuenta</span>
@@ -789,7 +809,9 @@ export const ReservationsPage: React.FC<ReservationsPageProps> = ({ onBackToHome
                   className="p-4 bg-stone-50 hover:bg-stone-100 border border-stone-300 text-stone-900 font-mono text-xs font-bold flex items-center justify-between transition-all group shadow-sm text-left"
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xl">🍏</span>
+                    <div className="p-2 bg-stone-200 text-stone-800 border border-stone-300">
+                      <Download className="w-4 h-4" />
+                    </div>
                     <div>
                       <span className="block text-ink">Añadir a Apple / Outlook</span>
                       <span className="text-[10px] text-stone-500 font-normal">Descarga archivo .ics para el móvil</span>

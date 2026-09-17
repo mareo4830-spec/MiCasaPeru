@@ -180,7 +180,7 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ onNaviga
   };
 
   return (
-    <section id="reservas" className="py-20 px-4 sm:px-8 border-b border-stone-200 bg-stone-100/60">
+    <section id="libro-reservas" className="py-20 px-4 sm:px-8 border-b border-stone-200 bg-stone-100/60">
       <div className="max-w-7xl mx-auto">
         
         {/* Section Header */}

@@ -7,9 +7,10 @@ import { DishModal } from './DishModal';
 
 interface MenuSectionProps {
   onSelectDishForReservation?: (dishName: string) => void;
+  onNavigateReservas?: () => void;
 }
 
-export const MenuSection: React.FC<MenuSectionProps> = ({ onSelectDishForReservation }) => {
+export const MenuSection: React.FC<MenuSectionProps> = ({ onSelectDishForReservation, onNavigateReservas }) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<DishCategory>('todos');
@@ -298,9 +299,14 @@ export const MenuSection: React.FC<MenuSectionProps> = ({ onSelectDishForReserva
         dish={selectedDish}
         onClose={() => setSelectedDish(null)}
         onBookTable={() => {
-          const resElement = document.getElementById('reservas');
-          if (resElement) {
-            resElement.scrollIntoView({ behavior: 'smooth' });
+          setSelectedDish(null);
+          if (onNavigateReservas) {
+            onNavigateReservas();
+          } else {
+            const resElement = document.getElementById('reservas');
+            if (resElement) {
+              resElement.scrollIntoView({ behavior: 'smooth' });
+            }
           }
         }}
       />

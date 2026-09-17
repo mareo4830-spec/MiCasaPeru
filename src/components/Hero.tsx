@@ -1,7 +1,11 @@
 import React from 'react';
 import { ArrowDownRight, Sparkles, MapPin, Clock, Compass, ShieldCheck } from 'lucide-react';
 
-export const Hero: React.FC = () => {
+interface HeroProps {
+  onNavigateReservas?: () => void;
+}
+
+export const Hero: React.FC<HeroProps> = ({ onNavigateReservas }) => {
   return (
     <section id="inicio" className="relative border-b border-stone-200 bg-grain overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-12 pb-16 lg:py-20">
@@ -58,6 +62,14 @@ export const Hero: React.FC = () => {
 
               <a
                 href="#reservas"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onNavigateReservas) {
+                    onNavigateReservas();
+                  } else {
+                    window.location.hash = '#reservas';
+                  }
+                }}
                 className="px-6 py-3.5 border border-aji-600 bg-aji-50 hover:bg-aji-600 hover:text-white text-aji-800 text-xs font-mono uppercase tracking-widest transition-all flex items-center gap-2"
               >
                 <span>Reservar Mesa Online</span>

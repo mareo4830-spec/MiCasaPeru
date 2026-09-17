@@ -80,10 +80,10 @@ export async function sendTelegramReservationNotification(
     return { success: false, error: 'Telegram no configurado' };
   }
 
-  const shiftLabel = reservation.shift === 'almuerzo' ? '☀️ ALMUERZO' : '🌙 CENA';
+  const shiftLabel = reservation.shift === 'almuerzo' ? 'ALMUERZO' : 'CENA';
   const locationLabel = 
-    reservation.locationPreference === 'salon' ? '🛋️ Salón' :
-    reservation.locationPreference === 'terraza' ? '🌿 Terraza' : '✨ Indiferente';
+    reservation.locationPreference === 'salon' ? 'Salón' :
+    reservation.locationPreference === 'terraza' ? 'Terraza' : 'Indiferente';
 
   // Format date to DD/MM/YYYY
   let formattedDate = reservation.date;

@@ -71,8 +71,8 @@ export const TerminosCondicionesPage: React.FC<TerminosCondicionesPageProps> = (
           disponemos de la información detallada sobre los 14 alérgenos de obligada declaración en todos los platos de nuestra carta.
         </p>
         <div className="bg-stone-100 border border-stone-300 p-4 text-xs font-mono space-y-1.5 text-stone-800">
-          <p><strong>⚠️ Prevención de Anisakis (RD 1420/2006):</strong> Todos los productos de la pesca para consumo en crudo o casi crudo (como ceviches, tiraditos o tartares) son sometidos a congelación previa reglamentaria a -20 °C durante un mínimo de 24-48 horas.</p>
-          <p><strong>⚠️ Celiaquía y Alergias Severas:</strong> Rogamos que cualquier alergia grave o condición de celiaquía sea indicada al realizar la reserva y reconfirmada al camarero al tomar asiento en sala para extremar los protocolos de no contaminación cruzada en cocina.</p>
+          <p><strong>Prevención de Anisakis (RD 1420/2006):</strong> Todos los productos de la pesca para consumo en crudo o casi crudo (como ceviches, tiraditos o tartares) son sometidos a congelación previa reglamentaria a -20 °C durante un mínimo de 24-48 horas.</p>
+          <p><strong>Celiaquía y Alergias Severas:</strong> Rogamos que cualquier alergia grave o condición de celiaquía sea indicada al realizar la reserva y reconfirmada al camarero al tomar asiento en sala para extremar los protocolos de no contaminación cruzada en cocina.</p>
         </div>
       </section>
 

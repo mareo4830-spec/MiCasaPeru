@@ -97,18 +97,18 @@ export const ReservationTicket: React.FC<ReservationTicketProps> = ({ reservatio
             href={createGoogleCalendarUrl(reservation)}
             target="_blank"
             rel="noopener noreferrer"
-            className="py-2.5 px-3 bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-900 font-mono text-xs flex items-center justify-center gap-1.5 transition-colors"
+            className="py-2.5 px-3 bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-900 font-mono text-xs flex items-center justify-center gap-2 transition-colors"
           >
-            <span>📅</span>
+            <Calendar className="w-3.5 h-3.5 text-stone-700" />
             <span>Google Calendar</span>
           </a>
 
           <button
             type="button"
             onClick={() => downloadIcsFile(reservation)}
-            className="py-2.5 px-3 bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-900 font-mono text-xs flex items-center justify-center gap-1.5 transition-colors"
+            className="py-2.5 px-3 bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-900 font-mono text-xs flex items-center justify-center gap-2 transition-colors"
           >
-            <span>🍏</span>
+            <Calendar className="w-3.5 h-3.5 text-stone-700" />
             <span>Apple / Outlook (.ics)</span>
           </button>
         </div>

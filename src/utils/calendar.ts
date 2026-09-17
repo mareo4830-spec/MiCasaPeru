@@ -40,14 +40,14 @@ function getEventDates(dateStr: string, timeStr: string, durationMinutes = 90): 
 export function createGoogleCalendarUrl(reservation: Reservation): string {
   const { startIso, endIso } = getEventDates(reservation.date, reservation.timeSlot, 90);
   
-  const title = encodeURIComponent(`🍽️ Reserva Mi Casa Perú (${reservation.diners} comensales)`);
+  const title = encodeURIComponent(`Reserva Mi Casa Perú (${reservation.diners} comensales)`);
   const details = encodeURIComponent(
     `Reserva confirmada en Restaurante Mi Casa Perú.\n\n` +
-    `🎫 Localizador: ${reservation.ticketCode}\n` +
-    `👥 Comensales: ${reservation.diners} personas\n` +
-    `📍 Zona: ${reservation.locationPreference === 'terraza' ? 'Terraza Exterior' : 'Salón Principal'}\n` +
-    `👤 Titular: ${reservation.customerName}\n` +
-    `📞 Contacto restaurante: 643 56 72 50\n\n` +
+    `Localizador: ${reservation.ticketCode}\n` +
+    `Comensales: ${reservation.diners} personas\n` +
+    `Zona: ${reservation.locationPreference === 'terraza' ? 'Terraza Exterior' : 'Salón Principal'}\n` +
+    `Titular: ${reservation.customerName}\n` +
+    `Contacto restaurante: 643 56 72 50\n\n` +
     `¡Te esperamos con la mejor cocina fusión peruano-onubense!`
   );
   const location = encodeURIComponent('Restaurante Mi Casa Perú, C. Isla Cristina 6, 21003 Huelva');
@@ -63,7 +63,7 @@ export function downloadIcsFile(reservation: Reservation): void {
   const createdIso = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
   const locationText = 'Restaurante Mi Casa Perú\\, C. Isla Cristina 6\\, 21003 Huelva';
-  const summaryText = `🍽️ Reserva Mi Casa Perú (${reservation.diners} pers)`;
+  const summaryText = `Reserva Mi Casa Perú (${reservation.diners} pers)`;
   const descriptionText = `Reserva confirmada en Mi Casa Perú\\nLocalizador: ${reservation.ticketCode}\\nComensales: ${reservation.diners}\\nZona: ${reservation.locationPreference}\\nTeléfono: 643 56 72 50`;
 
   const icsContent = [

@@ -1,7 +1,11 @@
 import React from 'react';
 import { UtensilsCrossed, Sun, Wine, ArrowUpRight, Calendar, Sparkles } from 'lucide-react';
 
-export const ServiceHighlights: React.FC = () => {
+interface ServiceHighlightsProps {
+  onNavigateReservas?: () => void;
+}
+
+export const ServiceHighlights: React.FC<ServiceHighlightsProps> = ({ onNavigateReservas }) => {
   return (
     <section id="servicios" className="border-b border-stone-200 bg-stone-100/70 py-16 px-4 sm:px-8">
       <div className="max-w-7xl mx-auto">
@@ -60,6 +64,14 @@ export const ServiceHighlights: React.FC = () => {
             <div className="pt-6 mt-6 border-t border-stone-200">
               <a
                 href="#reservas"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onNavigateReservas) {
+                    onNavigateReservas();
+                  } else {
+                    window.location.hash = '#reservas';
+                  }
+                }}
                 className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-mono text-xs uppercase tracking-widest text-center flex items-center justify-center gap-2 transition-colors"
               >
                 <span>Reservar en Salón</span>
@@ -103,6 +115,14 @@ export const ServiceHighlights: React.FC = () => {
             <div className="pt-6 mt-6 border-t border-stone-200">
               <a
                 href="#reservas"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onNavigateReservas) {
+                    onNavigateReservas();
+                  } else {
+                    window.location.hash = '#reservas';
+                  }
+                }}
                 className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-mono text-xs uppercase tracking-widest text-center flex items-center justify-center gap-2 transition-colors"
               >
                 <span>Reservar en Terraza</span>

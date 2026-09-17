@@ -84,6 +84,7 @@ export function App() {
           setCurrentView('public');
         }
       }
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     };
 
     routeCheck();
@@ -130,7 +131,7 @@ export function App() {
         window.location.hash = '';
       }
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   const handleLoginSuccess = () => {
@@ -191,9 +192,9 @@ export function App() {
             onOpenNfcMenu={() => handleNavigate('carta')} 
           />
           <main>
-            <Hero />
-            <ServiceHighlights />
-            <MenuSection />
+            <Hero onNavigateReservas={() => handleNavigate('reservas')} />
+            <ServiceHighlights onNavigateReservas={() => handleNavigate('reservas')} />
+            <MenuSection onNavigateReservas={() => handleNavigate('reservas')} />
             <StoryFusion />
             <ReservationSection onNavigateLegal={handleNavigate} />
             <LocationContact />

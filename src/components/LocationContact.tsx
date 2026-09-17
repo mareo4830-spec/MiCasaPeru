@@ -107,8 +107,9 @@ export const LocationContact: React.FC = () => {
                 loading="lazy"
               />
               
-              <div className="absolute top-4 left-4 bg-stone-950/90 text-white px-3 py-1.5 font-mono text-xs border border-stone-700 shadow-md">
-                📍 C. Isla Cristina 6 · Huelva
+              <div className="absolute top-4 left-4 bg-stone-950/90 text-white px-3 py-1.5 font-mono text-xs border border-stone-700 shadow-md flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-aji-400 shrink-0" />
+                <span>C. Isla Cristina 6 · Huelva</span>
               </div>
             </div>
 
