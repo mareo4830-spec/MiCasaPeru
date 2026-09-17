@@ -12,7 +12,16 @@ interface AdminLayoutProps {
 }
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout, onViewPublic }) => {
-  const [activeTab, setActiveTab] = useState<'menu' | 'reservations' | 'settings'>('reservations');
+  const [activeTab, setActiveTab] = useState<'menu' | 'reservations' | 'settings'>(() => {
+    const h = window.location.hash.toLowerCase();
+    if (h.includes('contrasena') || h.includes('settings') || h.includes('seguridad') || h.includes('clave')) {
+      return 'settings';
+    }
+    if (h.includes('menu') || h.includes('carta')) {
+      return 'menu';
+    }
+    return 'reservations';
+  });
 
   const isOnline = isSupabaseOnline();
   const hasTelegram = isTelegramConfigured();
@@ -61,7 +70,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout, onViewPublic
           {/* Nav Tabs */}
           <nav className="flex items-center gap-1 font-mono text-xs">
             <button
-              onClick={() => setActiveTab('reservations')}
+              onClick={() => {
+                setActiveTab('reservations');
+                window.location.hash = '#admin-reservas';
+              }}
               className={`px-3.5 py-2 border transition-colors flex items-center gap-1.5 ${
                 activeTab === 'reservations'
                   ? 'bg-aji-600 text-white border-aji-600 font-bold'
@@ -73,7 +85,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout, onViewPublic
             </button>
 
             <button
-              onClick={() => setActiveTab('menu')}
+              onClick={() => {
+                setActiveTab('menu');
+                window.location.hash = '#admin-menu';
+              }}
               className={`px-3.5 py-2 border transition-colors flex items-center gap-1.5 ${
                 activeTab === 'menu'
                   ? 'bg-aji-600 text-white border-aji-600 font-bold'
@@ -85,7 +100,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout, onViewPublic
             </button>
 
             <button
-              onClick={() => setActiveTab('settings')}
+              onClick={() => {
+                setActiveTab('settings');
+                window.location.hash = '#admin-contrasena';
+              }}
               className={`px-3.5 py-2 border transition-colors flex items-center gap-1.5 ${
                 activeTab === 'settings'
                   ? 'bg-aji-600 text-white border-aji-600 font-bold'

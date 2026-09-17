@@ -15,6 +15,7 @@ import { AvisoLegalPage } from './pages/legal/AvisoLegalPage';
 import { PoliticaPrivacidadPage } from './pages/legal/PoliticaPrivacidadPage';
 import { PoliticaCookiesPage } from './pages/legal/PoliticaCookiesPage';
 import { TerminosCondicionesPage } from './pages/legal/TerminosCondicionesPage';
+import { ReservationsPage } from './pages/ReservationsPage';
 import { isSessionValid, clearAdminSession } from './utils/security';
 import { getSupabaseClient } from './services/supabase';
 
@@ -22,6 +23,7 @@ export type AppView =
   | 'public' 
   | 'admin' 
   | 'carta' 
+  | 'reservas'
   | 'aviso-legal' 
   | 'politica-privacidad' 
   | 'politica-cookies' 
@@ -51,6 +53,15 @@ export function App() {
         window.location.search.includes('mesa=')
       ) {
         setCurrentView('carta');
+      } else if (
+        path === '/reservas' ||
+        path === '/reservas/' ||
+        path.startsWith('/reservas') ||
+        hash === '#reservas' ||
+        hash === '#reservar' ||
+        hash === '#reservas-online'
+      ) {
+        setCurrentView('reservas');
       } else if (path.startsWith('/aviso-legal') || hash === '#aviso-legal') {
         setCurrentView('aviso-legal');
       } else if (path.startsWith('/politica-privacidad') || hash === '#politica-privacidad' || hash === '#privacidad') {
@@ -60,9 +71,10 @@ export function App() {
       } else if (path.startsWith('/terminos-condiciones') || hash === '#terminos-condiciones' || hash === '#terminos') {
         setCurrentView('terminos-condiciones');
       } else {
-        // If hash is an anchor like #reservas or #contacto, stay in public view
+        // If hash is an anchor like #contacto, stay in public view
         if (
           currentView !== 'carta' && 
+          currentView !== 'reservas' &&
           currentView !== 'admin' &&
           currentView !== 'aviso-legal' &&
           currentView !== 'politica-privacidad' &&
@@ -89,6 +101,8 @@ export function App() {
       window.location.hash = '#admin';
     } else if (view === 'carta') {
       window.location.hash = '#carta-digital';
+    } else if (view === 'reservas') {
+      window.location.hash = '#reservas';
     } else if (view === 'aviso-legal') {
       window.location.hash = '#aviso-legal';
     } else if (view === 'politica-privacidad') {
@@ -101,6 +115,9 @@ export function App() {
       const specialHashes = [
         '#admin', 
         '#carta-digital', 
+        '#reservas',
+        '#reservar',
+        '#reservas-online',
         '#aviso-legal', 
         '#politica-privacidad', 
         '#privacidad', 
@@ -141,6 +158,11 @@ export function App() {
 
       {currentView === 'carta' ? (
         <DigitalMenuPage onGoToFullWeb={() => handleNavigate('public')} />
+      ) : currentView === 'reservas' ? (
+        <ReservationsPage 
+          onBackToHome={() => handleNavigate('public')} 
+          onGoToMenu={() => handleNavigate('carta')} 
+        />
       ) : currentView === 'admin' ? (
         isAdminAuthenticated ? (
           <AdminLayout 

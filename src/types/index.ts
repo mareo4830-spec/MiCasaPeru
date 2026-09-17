@@ -17,6 +17,8 @@ export interface MenuItem {
 }
 
 export type ReservationStatus = 'pendiente' | 'confirmada' | 'cancelada' | 'completada';
+export type ShiftType = 'almuerzo' | 'cena';
+export type LocationPreference = 'salon' | 'terraza' | 'indiferente';
 
 export interface Reservation {
   id: string;
@@ -26,9 +28,9 @@ export interface Reservation {
   customerEmail: string;
   date: string; // YYYY-MM-DD
   timeSlot: string; // HH:mm
-  shift: 'almuerzo' | 'cena';
+  shift: ShiftType;
   diners: number;
-  locationPreference: 'salon' | 'terraza' | 'indiferente';
+  locationPreference: LocationPreference;
   specialRequests?: string;
   allergies?: string;
   status: ReservationStatus;

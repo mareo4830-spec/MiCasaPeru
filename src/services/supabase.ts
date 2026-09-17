@@ -39,7 +39,11 @@ export function getSupabaseConfiguration(): SupabaseCustomConfig | null {
     };
   }
 
-  return null;
+  // 3. Fallback directo garantizado con el proyecto activo de Mi Casa Perú
+  return {
+    url: 'https://pjrarnwtidaizskvtuts.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqcmFybnd0aWRhaXpza3Z0dXRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2NDk4OTEsImV4cCI6MjEwNTIyNTg5MX0.zRQk74XAPT-LEh8BdEsaWUm9jutGl2WmLNY9t6uOAg0',
+  };
 }
 
 let supabaseInstance: SupabaseClient | null = null;

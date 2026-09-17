@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, Calendar, Clock, Users, MapPin, Printer, MessageSquare, ArrowRight } from 'lucide-react';
 import { Reservation } from '../types';
+import { createGoogleCalendarUrl, downloadIcsFile } from '../utils/calendar';
 
 interface ReservationTicketProps {
   reservation: Reservation;
@@ -90,6 +91,28 @@ export const ReservationTicket: React.FC<ReservationTicketProps> = ({ reservatio
 
       {/* Action Buttons */}
       <div className="space-y-3 pt-2">
+        {/* Calendar Integrations */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <a
+            href={createGoogleCalendarUrl(reservation)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="py-2.5 px-3 bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-900 font-mono text-xs flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <span>📅</span>
+            <span>Google Calendar</span>
+          </a>
+
+          <button
+            type="button"
+            onClick={() => downloadIcsFile(reservation)}
+            className="py-2.5 px-3 bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-900 font-mono text-xs flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <span>🍏</span>
+            <span>Apple / Outlook (.ics)</span>
+          </button>
+        </div>
+
         <a
           href={`https://wa.me/34643567250?text=${whatsappMessage}`}
           target="_blank"

@@ -8,8 +8,22 @@ export interface TelegramConfig {
   chatId: string;
 }
 
-export function getTelegramConfiguration(): TelegramConfig | null {
-  // 1. Check localStorage first
+const DEFAULT_BOT_TOKEN = '8607744921:AAE9ZoB89budUEkyEd_VUEix0v-sgEFW1Vk';
+const DEFAULT_CHAT_ID = '-1004383504642';
+
+export function getTelegramConfiguration(): TelegramConfig {
+  // 1. Check environment variables
+  const envToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+  const envChatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+
+  if (envToken && envChatId && envToken.trim() !== '' && envChatId.trim() !== '') {
+    return {
+      botToken: envToken.trim(),
+      chatId: envChatId.trim(),
+    };
+  }
+
+  // 2. Check localStorage override
   const localSaved = localStorage.getItem(STORAGE_KEY);
   if (localSaved) {
     try {
@@ -22,18 +36,11 @@ export function getTelegramConfiguration(): TelegramConfig | null {
     }
   }
 
-  // 2. Check environment variables
-  const envToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-  const envChatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
-
-  if (envToken && envChatId && envToken.trim() !== '' && envChatId.trim() !== '') {
-    return {
-      botToken: envToken.trim(),
-      chatId: envChatId.trim(),
-    };
-  }
-
-  return null;
+  // 3. Fallback directo garantizado (evita fallos si Vite no recargó el archivo .env)
+  return {
+    botToken: DEFAULT_BOT_TOKEN,
+    chatId: DEFAULT_CHAT_ID,
+  };
 }
 
 export function isTelegramConfigured(): boolean {

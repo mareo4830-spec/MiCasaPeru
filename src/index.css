@@ -11,6 +11,9 @@
     background-color: #FAF9F5;
     touch-action: manipulation;
     -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
   }
 
   body {
@@ -18,11 +21,18 @@
     color: #1A1714;
     overflow-x: hidden;
     touch-action: manipulation;
+    width: 100%;
+    max-width: 100vw;
+    position: relative;
   }
 
-  /* Prevenir el auto-zoom indeseado en dispositivos móviles (iOS/Safari) al tocar inputs */
-  @media screen and (max-width: 768px) {
-    input, select, textarea {
+  *, *::before, *::after {
+    touch-action: manipulation;
+  }
+
+  /* Prevenir el auto-zoom indeseado en móviles (iOS/Safari) al tocar cualquier input o selector */
+  @media screen and (max-width: 1024px) {
+    input, select, textarea, button {
       font-size: 16px !important;
     }
   }

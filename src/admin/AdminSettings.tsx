@@ -227,28 +227,6 @@ export const AdminSettings: React.FC = () => {
                 <p className="font-semibold">{feedback.message}</p>
               </div>
             </div>
-
-            {feedback.showSql && (
-              <div className="mt-3 pt-3 border-t border-amber-200 space-y-2 font-mono">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-amber-950 flex items-center gap-1">
-                    <ShieldAlert className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Ejecutar en Supabase (SQL Editor) para habilitar para todos:</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={copySqlToClipboard}
-                    className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold text-[10px] flex items-center gap-1 transition-colors border border-amber-400"
-                  >
-                    {copiedSql ? <Check className="w-3 h-3 text-emerald-700" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedSql ? '¡Copiado!' : 'Copiar SQL'}</span>
-                  </button>
-                </div>
-                <pre className="p-3 bg-stone-900 text-emerald-400 text-[10px] overflow-x-auto rounded border border-stone-800 leading-relaxed">
-                  {ADMIN_CONFIG_SQL}
-                </pre>
-              </div>
-            )}
           </div>
         )}
 
@@ -321,6 +299,46 @@ export const AdminSettings: React.FC = () => {
           </div>
         </form>
 
+      </div>
+
+      {/* SQL Table Instruction Card (Always visible and accessible) */}
+      <div className="bg-stone-900 text-stone-100 border border-stone-800 p-6 sm:p-7 space-y-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              <ShieldAlert className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-serif text-base sm:text-lg font-bold text-white">
+                Código SQL para Supabase (Sincronización Global)
+              </h3>
+              <p className="font-mono text-[11px] text-stone-400 mt-0.5">
+                Copia este código y pégalo en el <strong>SQL Editor</strong> de Supabase para habilitar que la clave se guarde para todos los dispositivos.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={copySqlToClipboard}
+            className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-stone-950 font-mono text-xs font-bold flex items-center gap-1.5 transition-colors self-start sm:self-auto shrink-0 shadow-sm"
+          >
+            {copiedSql ? <Check className="w-4 h-4 text-emerald-800" /> : <Copy className="w-4 h-4 text-stone-900" />}
+            <span>{copiedSql ? '¡Código SQL Copiado!' : 'Copiar Código SQL'}</span>
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          <p className="font-mono text-xs text-stone-300">
+            <strong>Instrucciones rápidas:</strong>
+            <span className="text-stone-400 ml-1">
+              Entra a tu proyecto en <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline hover:text-amber-300">supabase.com</a> ➔ <strong>SQL Editor</strong> ➔ Pega el código de abajo y pulsa <strong>Run</strong>.
+            </span>
+          </p>
+          <pre className="p-4 bg-stone-950 text-emerald-400 font-mono text-[11px] overflow-x-auto border border-stone-800 leading-relaxed rounded">
+            {ADMIN_CONFIG_SQL}
+          </pre>
+        </div>
       </div>
 
     </div>

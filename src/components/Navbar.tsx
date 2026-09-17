@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Phone, Utensils, Calendar, ShieldCheck, Menu, X, MapPin, QrCode } from 'lucide-react';
 
 interface NavbarProps {
-  currentView: 'public' | 'admin' | 'carta';
-  onNavigate: (view: 'public' | 'admin' | 'carta') => void;
+  currentView: 'public' | 'admin' | 'carta' | 'reservas';
+  onNavigate: (view: 'public' | 'admin' | 'carta' | 'reservas') => void;
   onOpenNfcMenu?: () => void;
 }
 
@@ -38,7 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onOpenN
         <a 
           href="#inicio" 
           onClick={(e) => {
-            if (currentView === 'admin') {
+            if (currentView !== 'public') {
               e.preventDefault();
               onNavigate('public');
             }
@@ -81,13 +81,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onOpenN
               >
                 Filosofía Fusión
               </a>
-              <a 
-                href="#reservas" 
-                className="text-stone-700 hover:text-aji-700 transition-colors flex items-center gap-1.5 tracking-wide"
+              <button 
+                onClick={() => onNavigate('reservas')}
+                className="text-stone-700 hover:text-aji-700 transition-colors flex items-center gap-1.5 tracking-wide font-medium"
               >
                 <Calendar className="w-4 h-4 text-stone-500" />
                 <span>Reservas</span>
-              </a>
+              </button>
               <a 
                 href="#contacto" 
                 className="text-stone-700 hover:text-aji-700 transition-colors tracking-wide"
@@ -107,7 +107,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onOpenN
 
         {/* Right CTA Actions */}
         <div className="hidden sm:flex items-center space-x-3">
-          {currentView === 'public' ? (
+          {currentView === 'public' || currentView === 'reservas' ? (
             <>
               <button
                 onClick={onOpenNfcMenu}
@@ -117,13 +117,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onOpenN
                 <QrCode className="w-3.5 h-3.5 text-aji-600" />
                 <span>Carta NFC</span>
               </button>
-              <a
-                href="#reservas"
-                className="px-4 py-2 bg-aji-600 hover:bg-aji-700 text-white text-xs uppercase font-mono tracking-wider transition-all shadow-sm flex items-center gap-2 active:scale-95"
+              <button
+                onClick={() => onNavigate('reservas')}
+                className="px-4 py-2 bg-aji-600 hover:bg-aji-700 text-white text-xs uppercase font-mono tracking-wider transition-all shadow-sm flex items-center gap-2 active:scale-95 font-bold"
               >
                 <Calendar className="w-3.5 h-3.5" />
                 <span>Reservar Mesa</span>
-              </a>
+              </button>
               <button
                 onClick={() => onNavigate('admin')}
                 className="px-3 py-2 border border-stone-300 hover:border-stone-800 text-stone-700 hover:text-stone-900 text-xs uppercase font-mono tracking-wider transition-all flex items-center gap-1.5 bg-stone-100"
@@ -186,13 +186,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onOpenN
           >
             Fusión Perú · Huelva
           </a>
-          <a 
-            href="#reservas" 
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-stone-800 border-b border-stone-200"
+          <button 
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              onNavigate('reservas');
+            }}
+            className="w-full text-left py-2.5 text-stone-800 border-b border-stone-200 font-bold flex items-center justify-between"
           >
-            Reservar Mesa
-          </a>
+            <span>Reservar Mesa</span>
+            <span className="text-aji-600 font-mono text-xs">Pase Online →</span>
+          </button>
           <a 
             href="#contacto" 
             onClick={() => setMobileMenuOpen(false)}
@@ -211,13 +215,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onOpenN
               <QrCode className="w-4 h-4 text-aji-400" />
               <span>Abrir Carta NFC de Mesa</span>
             </button>
-            <a
-              href="#reservas"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 bg-aji-600 text-white font-mono text-xs tracking-widest"
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onNavigate('reservas');
+              }}
+              className="w-full text-center py-2.5 bg-aji-600 text-white font-mono text-xs tracking-widest font-bold"
             >
               Reservar Online
-            </a>
+            </button>
             <a
               href="tel:643567250"
               className="w-full text-center py-2.5 border border-stone-300 text-stone-800 font-mono text-xs tracking-widest"
