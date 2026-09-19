@@ -99,6 +99,22 @@ export async function fetchMenuItems(): Promise<MenuItem[]> {
   return getLocalMenuItems();
 }
 
+function sanitizeImageUrl(url: string | undefined): string {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  // Validar si es una data URL segura de imagen
+  if (/^data:image\/(jpeg|jpg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(trimmed)) {
+    if (trimmed.length <= 2500000) {
+      return trimmed;
+    }
+  }
+  // Si es una URL http o https estándar
+  if (/^https?:\/\/[^\s<>"']+$/i.test(trimmed)) {
+    return sanitizeInput(trimmed, 2000);
+  }
+  return sanitizeInput(trimmed, 800);
+}
+
 export async function addMenuItem(newItem: Omit<MenuItem, 'id'>): Promise<MenuItem> {
   const supabase = getSupabaseClient();
   const id = 'item-' + Date.now();
@@ -108,7 +124,7 @@ export async function addMenuItem(newItem: Omit<MenuItem, 'id'>): Promise<MenuIt
     name: sanitizeInput(newItem.name, 100),
     description: sanitizeInput(newItem.description || '', 500),
     fusionNotes: sanitizeInput(newItem.fusionNotes || '', 300),
-    imageUrl: sanitizeInput(newItem.imageUrl || '', 800),
+    imageUrl: sanitizeImageUrl(newItem.imageUrl),
     ingredients: (newItem.ingredients || []).map((ing) => sanitizeInput(ing, 80)).filter(Boolean),
     allergens: (newItem.allergens || []).map((al) => sanitizeInput(al, 50)).filter(Boolean),
   };
@@ -152,7 +168,7 @@ export async function updateMenuItem(id: string, updates: Partial<MenuItem>): Pr
   if (updates.name !== undefined) sanitizedUpdates.name = sanitizeInput(updates.name, 100);
   if (updates.description !== undefined) sanitizedUpdates.description = sanitizeInput(updates.description, 500);
   if (updates.fusionNotes !== undefined) sanitizedUpdates.fusionNotes = sanitizeInput(updates.fusionNotes, 300);
-  if (updates.imageUrl !== undefined) sanitizedUpdates.imageUrl = sanitizeInput(updates.imageUrl, 800);
+  if (updates.imageUrl !== undefined) sanitizedUpdates.imageUrl = sanitizeImageUrl(updates.imageUrl);
   if (updates.ingredients !== undefined) {
     sanitizedUpdates.ingredients = updates.ingredients.map((ing) => sanitizeInput(ing, 80)).filter(Boolean);
   }

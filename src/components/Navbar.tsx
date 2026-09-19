@@ -263,6 +263,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, onOpenN
             >
               Llamar al 643 56 72 50
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onNavigate('admin');
+              }}
+              className="w-full text-center py-2.5 border border-stone-800 bg-stone-900 text-stone-300 font-mono text-xs tracking-widest flex items-center justify-center gap-1.5"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-aji-400" />
+              <span>Acceso Panel Admin</span>
+            </button>
           </div>
         </div>
       )}

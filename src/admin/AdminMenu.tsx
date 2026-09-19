@@ -334,6 +334,7 @@ export const AdminMenu: React.FC = () => {
 
         <div className="flex flex-wrap gap-2">
           <button
+            type="button"
             onClick={openCreateModal}
             className="px-4 py-2.5 bg-aji-600 hover:bg-aji-700 text-white font-mono text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors shadow-sm"
           >
@@ -342,9 +343,10 @@ export const AdminMenu: React.FC = () => {
           </button>
 
           <button
+            type="button"
             onClick={handleSeedMenu}
             className="px-3.5 py-2.5 border border-stone-300 hover:border-stone-800 bg-white text-stone-800 font-mono text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors"
-            title="Poblar Firestore con la selección original si está vacía"
+            title="Poblar carta con la selección original si está vacía"
           >
             <Sparkles className="w-3.5 h-3.5 text-aji-600" />
             <span>Restaurar Carta Inicial</span>
@@ -364,6 +366,7 @@ export const AdminMenu: React.FC = () => {
         ].map((tab) => (
           <button
             key={tab.key}
+            type="button"
             onClick={() => setFilterCategory(tab.key as DishCategory)}
             className={`px-3 py-1.5 border transition-all ${
               filterCategory === tab.key
@@ -535,6 +538,7 @@ export const AdminMenu: React.FC = () => {
               <div className="p-3 bg-stone-50 border-t border-stone-200 flex flex-wrap items-center justify-between gap-2">
                 {/* Conmutador de disponibilidad rápido */}
                 <button
+                  type="button"
                   onClick={() => handleToggleAvailability(item)}
                   className={`font-mono text-xs px-3 py-1.5 border flex items-center gap-1.5 font-bold transition-all shadow-xs active:scale-95 ${
                     item.isAvailable
@@ -559,15 +563,17 @@ export const AdminMenu: React.FC = () => {
                 {/* Acciones de Edición y Eliminación */}
                 <div className="flex items-center gap-2">
                   <button
+                    type="button"
                     onClick={() => openEditModal(item)}
-                    className="px-3 py-1.5 bg-white border border-stone-300 hover:border-stone-800 text-stone-800 font-mono text-xs flex items-center gap-1.5 transition-colors shadow-xs active:scale-95"
+                    className="px-3 py-1.5 bg-white border border-stone-300 hover:border-stone-800 text-stone-800 font-mono text-xs flex items-center gap-1.5 transition-colors shadow-xs active:scale-95 rounded-sm"
                   >
                     <Edit2 className="w-3.5 h-3.5 text-stone-600" />
                     <span>Editar</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => setDeleteCandidate(item)}
-                    className="px-3 py-1.5 bg-white border border-red-200 hover:border-red-600 text-red-600 hover:bg-red-50 font-mono text-xs flex items-center gap-1.5 transition-colors shadow-xs active:scale-95"
+                    className="px-3 py-1.5 bg-white border border-red-200 hover:border-red-600 text-red-600 hover:bg-red-50 font-mono text-xs flex items-center gap-1.5 transition-colors shadow-xs active:scale-95 rounded-sm"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-red-600" />
                     <span>Eliminar</span>
@@ -662,8 +668,9 @@ export const AdminMenu: React.FC = () => {
                   {/* Availability toggle */}
                   <td className="py-3 px-4">
                     <button
+                      type="button"
                       onClick={() => handleToggleAvailability(item)}
-                      className={`font-mono text-[11px] px-2 py-0.5 border flex items-center gap-1 transition-colors ${
+                      className={`font-mono text-[11px] px-2 py-0.5 border flex items-center gap-1 transition-colors rounded-sm ${
                         item.isAvailable
                           ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                           : 'bg-stone-200 text-stone-600 border-stone-300'
@@ -688,15 +695,17 @@ export const AdminMenu: React.FC = () => {
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <button
+                        type="button"
                         onClick={() => openEditModal(item)}
-                        className="p-1.5 border border-stone-300 hover:border-stone-800 text-stone-700 hover:text-stone-900 transition-colors"
+                        className="p-1.5 border border-stone-300 hover:border-stone-800 text-stone-700 hover:text-stone-900 transition-colors rounded-sm"
                         title="Editar plato"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => setDeleteCandidate(item)}
-                        className="p-1.5 border border-red-200 hover:border-red-600 text-red-600 hover:text-red-800 transition-colors"
+                        className="p-1.5 border border-red-200 hover:border-red-600 text-red-600 hover:text-red-800 transition-colors rounded-sm"
                         title="Eliminar plato"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -725,8 +734,9 @@ export const AdminMenu: React.FC = () => {
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-stone-400 hover:text-stone-800 text-lg font-mono"
+                className="text-stone-400 hover:text-stone-800 text-lg font-mono p-1"
               >
                 ✕
               </button>
@@ -1089,14 +1099,16 @@ export const AdminMenu: React.FC = () => {
             </p>
             <div className="flex justify-end gap-2 pt-2 border-t border-stone-200">
               <button
+                type="button"
                 onClick={() => setDeleteCandidate(null)}
-                className="px-3 py-2 border border-stone-300 font-mono text-xs uppercase"
+                className="px-3 py-2 border border-stone-300 font-mono text-xs uppercase hover:bg-stone-100 transition-colors"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleDeleteItem}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-mono text-xs uppercase font-bold"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-mono text-xs uppercase font-bold transition-colors"
               >
                 Sí, Eliminar
               </button>

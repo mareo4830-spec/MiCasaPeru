@@ -41,7 +41,12 @@ export function App() {
       const validSession = isSessionValid();
       setIsAdminAuthenticated(validSession);
 
-      if (path.startsWith('/admin') || hash === '#admin') {
+      if (
+        path.startsWith('/admin') || 
+        hash === '#admin' || 
+        hash.startsWith('#admin-') || 
+        hash.startsWith('#admin/')
+      ) {
         setCurrentView('admin');
       } else if (
         path === '/carta' || 

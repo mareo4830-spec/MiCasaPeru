@@ -285,6 +285,7 @@ export const AdminReservations: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => loadReservations()}
             disabled={loading}
             className="p-2.5 bg-white hover:bg-stone-100 border border-stone-300 text-stone-700 text-xs font-mono flex items-center gap-1.5 transition-colors disabled:opacity-50"
@@ -295,6 +296,7 @@ export const AdminReservations: React.FC = () => {
           </button>
 
           <button
+            type="button"
             onClick={() => setIsManualModalOpen(true)}
             className="px-4 py-2.5 bg-stone-900 hover:bg-black text-white font-mono text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm active:scale-95"
           >
@@ -327,9 +329,11 @@ export const AdminReservations: React.FC = () => {
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="bg-stone-800 text-white border border-stone-700 px-3 py-1.5 text-xs outline-none focus:border-aji-500 rounded-sm"
-            />
+            >
+            </input>
             {selectedDate !== todayStr && (
               <button
+                type="button"
                 onClick={() => setSelectedDate(todayStr)}
                 className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs border border-stone-700 transition-colors rounded-sm"
               >
@@ -337,6 +341,7 @@ export const AdminReservations: React.FC = () => {
               </button>
             )}
             <button
+              type="button"
               onClick={() => setOnlyToday(!onlyToday)}
               className={`px-3 py-1.5 border font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 rounded-sm ${
                 onlyToday
@@ -415,6 +420,7 @@ export const AdminReservations: React.FC = () => {
             ].map(tab => (
               <button
                 key={tab.key}
+                type="button"
                 onClick={() => setStatusFilter(tab.key as any)}
                 className={`px-3 py-1.5 border transition-all text-xs rounded-sm ${
                   statusFilter === tab.key
@@ -431,6 +437,7 @@ export const AdminReservations: React.FC = () => {
           <div className="flex items-center gap-2 self-end md:self-auto font-mono text-xs">
             <span className="text-stone-400 text-[11px] uppercase mr-1">Vista:</span>
             <button
+              type="button"
               onClick={() => setViewMode('cards')}
               className={`p-2 border transition-colors rounded-sm flex items-center gap-1.5 ${
                 viewMode === 'cards' 
@@ -443,6 +450,7 @@ export const AdminReservations: React.FC = () => {
               <span className="hidden sm:inline">Tarjetas</span>
             </button>
             <button
+              type="button"
               onClick={() => setViewMode('table')}
               className={`p-2 border transition-colors rounded-sm flex items-center gap-1.5 ${
                 viewMode === 'table' 
@@ -466,6 +474,7 @@ export const AdminReservations: React.FC = () => {
             <span className="text-stone-500 text-[11px] uppercase">Turno:</span>
             <div className="inline-flex border border-stone-300 rounded-sm overflow-hidden">
               <button
+                type="button"
                 onClick={() => setShiftFilter('todos')}
                 className={`px-2.5 py-1 text-xs transition-colors ${
                   shiftFilter === 'todos' ? 'bg-stone-900 text-white font-bold' : 'bg-white text-stone-700 hover:bg-stone-50'
@@ -474,6 +483,7 @@ export const AdminReservations: React.FC = () => {
                 Todos
               </button>
               <button
+                type="button"
                 onClick={() => setShiftFilter('almuerzo')}
                 className={`px-2.5 py-1 text-xs transition-colors border-l border-stone-200 flex items-center gap-1 ${
                   shiftFilter === 'almuerzo' ? 'bg-stone-900 text-white font-bold' : 'bg-white text-stone-700 hover:bg-stone-50'
@@ -483,6 +493,7 @@ export const AdminReservations: React.FC = () => {
                 <span>Almuerzo</span>
               </button>
               <button
+                type="button"
                 onClick={() => setShiftFilter('cena')}
                 className={`px-2.5 py-1 text-xs transition-colors border-l border-stone-200 flex items-center gap-1 ${
                   shiftFilter === 'cena' ? 'bg-stone-900 text-white font-bold' : 'bg-white text-stone-700 hover:bg-stone-50'
@@ -529,13 +540,14 @@ export const AdminReservations: React.FC = () => {
             Prueba a cambiar el estado, limpiar el buscador o pulsar en "Volver a Hoy".
           </p>
           <button
+            type="button"
             onClick={() => {
               setStatusFilter('todas');
               setShiftFilter('todos');
               setSearchQuery('');
               setOnlyToday(false);
             }}
-            className="px-3.5 py-1.5 bg-stone-900 text-white font-mono text-xs uppercase"
+            className="px-3.5 py-1.5 bg-stone-900 hover:bg-black text-white font-mono text-xs uppercase rounded-sm transition-colors"
           >
             Restablecer Filtros
           </button>
@@ -668,8 +680,9 @@ export const AdminReservations: React.FC = () => {
                   <div className="flex items-center gap-1.5">
                     {res.status === 'confirmada' && (
                       <button
+                        type="button"
                         onClick={() => handleStatusChange(res.id, 'completada')}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95"
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all flex items-center gap-1 shadow-2xs active:scale-95 rounded-sm"
                         title="Marcar como sentados en sala"
                       >
                         <Utensils className="w-3 h-3" />
@@ -679,8 +692,9 @@ export const AdminReservations: React.FC = () => {
 
                     {res.status === 'pendiente' && (
                       <button
+                        type="button"
                         onClick={() => handleStatusChange(res.id, 'confirmada')}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs active:scale-95"
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs active:scale-95 rounded-sm"
                       >
                         Confirmar
                       </button>
@@ -696,8 +710,9 @@ export const AdminReservations: React.FC = () => {
 
                   <div className="flex items-center gap-1">
                     <button
+                      type="button"
                       onClick={() => setSelectedReservation(res)}
-                      className="px-2.5 py-1.5 bg-white hover:bg-stone-100 border border-stone-300 text-stone-700 text-xs flex items-center gap-1 transition-colors"
+                      className="px-2.5 py-1.5 bg-white hover:bg-stone-100 border border-stone-300 text-stone-700 text-xs flex items-center gap-1 transition-colors rounded-sm"
                       title="Ver ficha completa"
                     >
                       <Eye className="w-3 h-3 text-stone-500" />
@@ -705,8 +720,9 @@ export const AdminReservations: React.FC = () => {
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => handleDelete(res.id, res.ticketCode)}
-                      className="p-1.5 hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors"
+                      className="p-1.5 hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors rounded-sm"
                       title="Eliminar reserva"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -746,6 +762,7 @@ export const AdminReservations: React.FC = () => {
                     {/* Ticket */}
                     <td className="py-3.5 px-4 font-mono font-bold text-aji-700">
                       <button
+                        type="button"
                         onClick={() => setSelectedReservation(res)}
                         className="hover:underline flex items-center gap-1"
                       >
@@ -831,8 +848,9 @@ export const AdminReservations: React.FC = () => {
                       <div className="flex items-center justify-end gap-1.5 font-mono text-[11px]">
                         {res.status === 'confirmada' && (
                           <button
+                            type="button"
                             onClick={() => handleStatusChange(res.id, 'completada')}
-                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors"
+                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors rounded-sm"
                             title="Marcar sentado"
                           >
                             Sentar
@@ -840,15 +858,17 @@ export const AdminReservations: React.FC = () => {
                         )}
 
                         <button
+                          type="button"
                           onClick={() => setSelectedReservation(res)}
-                          className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 transition-colors"
+                          className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 transition-colors rounded-sm"
                         >
                           Ficha
                         </button>
 
                         <button
+                          type="button"
                           onClick={() => handleDelete(res.id, res.ticketCode)}
-                          className="p-1 hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors ml-1"
+                          className="p-1 hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors ml-1 rounded-sm"
                           title="Eliminar"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -881,8 +901,9 @@ export const AdminReservations: React.FC = () => {
                       {selectedReservation.ticketCode}
                     </span>
                     <button
+                      type="button"
                       onClick={() => handleCopyCode(selectedReservation.ticketCode)}
-                      className="text-stone-400 hover:text-white transition-colors"
+                      className="text-stone-400 hover:text-white transition-colors p-1"
                       title="Copiar localizador"
                     >
                       {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -895,8 +916,9 @@ export const AdminReservations: React.FC = () => {
               </div>
 
               <button
+                type="button"
                 onClick={() => setSelectedReservation(null)}
-                className="text-stone-400 hover:text-white p-1 transition-colors"
+                className="text-stone-400 hover:text-white p-1.5 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1028,8 +1050,9 @@ export const AdminReservations: React.FC = () => {
                 <span className="uppercase text-stone-500 text-[11px] block">Cambiar Estado de la Mesa:</span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <button
+                    type="button"
                     onClick={() => handleStatusChange(selectedReservation.id, 'confirmada')}
-                    className={`py-2 px-2 border text-center transition-colors ${
+                    className={`py-2 px-2 border text-center transition-colors rounded-sm ${
                       selectedReservation.status === 'confirmada'
                         ? 'bg-emerald-700 text-white border-emerald-800 font-bold'
                         : 'bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-300'
@@ -1039,8 +1062,9 @@ export const AdminReservations: React.FC = () => {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => handleStatusChange(selectedReservation.id, 'completada')}
-                    className={`py-2 px-2 border text-center transition-colors ${
+                    className={`py-2 px-2 border text-center transition-colors rounded-sm ${
                       selectedReservation.status === 'completada'
                         ? 'bg-blue-700 text-white border-blue-800 font-bold'
                         : 'bg-white hover:bg-blue-50 text-blue-800 border-blue-300'
@@ -1050,8 +1074,9 @@ export const AdminReservations: React.FC = () => {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => handleStatusChange(selectedReservation.id, 'pendiente')}
-                    className={`py-2 px-2 border text-center transition-colors ${
+                    className={`py-2 px-2 border text-center transition-colors rounded-sm ${
                       selectedReservation.status === 'pendiente'
                         ? 'bg-amber-700 text-white border-amber-800 font-bold'
                         : 'bg-white hover:bg-amber-50 text-amber-800 border-amber-300'
@@ -1061,8 +1086,9 @@ export const AdminReservations: React.FC = () => {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => handleStatusChange(selectedReservation.id, 'cancelada')}
-                    className={`py-2 px-2 border text-center transition-colors ${
+                    className={`py-2 px-2 border text-center transition-colors rounded-sm ${
                       selectedReservation.status === 'cancelada'
                         ? 'bg-stone-700 text-white border-stone-800 font-bold'
                         : 'bg-white hover:bg-stone-100 text-stone-700 border-stone-300'
@@ -1078,6 +1104,7 @@ export const AdminReservations: React.FC = () => {
             {/* Modal Footer */}
             <div className="bg-stone-100 p-4 border-t border-stone-200 flex items-center justify-between">
               <button
+                type="button"
                 onClick={() => handleDelete(selectedReservation.id, selectedReservation.ticketCode)}
                 className="font-mono text-xs text-red-600 hover:text-red-800 flex items-center gap-1.5 transition-colors"
               >
@@ -1086,8 +1113,9 @@ export const AdminReservations: React.FC = () => {
               </button>
 
               <button
+                type="button"
                 onClick={() => setSelectedReservation(null)}
-                className="px-4 py-2 bg-stone-900 hover:bg-black text-white font-mono text-xs uppercase font-bold"
+                className="px-4 py-2 bg-stone-900 hover:bg-black text-white font-mono text-xs uppercase font-bold rounded-sm transition-colors"
               >
                 Cerrar Ficha
               </button>
@@ -1108,7 +1136,13 @@ export const AdminReservations: React.FC = () => {
                 </span>
                 <h4 className="font-serif text-2xl font-bold text-ink">Registrar Reserva Manual</h4>
               </div>
-              <button onClick={() => setIsManualModalOpen(false)} className="font-mono text-stone-400 hover:text-stone-800">✕</button>
+              <button
+                type="button"
+                onClick={() => setIsManualModalOpen(false)}
+                className="font-mono text-stone-400 hover:text-stone-800 p-1 transition-colors"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleCreateManualReservation} className="space-y-3 font-sans text-xs">
